@@ -1,0 +1,118 @@
+services:
+  # =============================================================================
+  # 1. PostgreSQL 16 Database (Private, Zero Public Ports)
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: neuroforge-db-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-neuroforge}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:-neuroforge_app}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD}
+    volumes:
+      - neuroforge_pgdata_prod:/var/lib/postgresql/data
+      - ./docker/postgres/init-neuroforge.sh:/docker-entrypoint-initdb.d/01-init-neuroforge.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-neuroforge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - neuroforge-internal
+    # CRITICAL SECURITY: No public port mapping. Accessible ONLY within neuroforge-internal bridge.
+
+  # =============================================================================
+  # 2. FastAPI Control Plane Backend
+  # =============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: neuroforge-backend-prod
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      ENVIRONMENT: production
+      HOST: 0.0.0.0
+      APP_PORT: 8020
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      CHECKPOINT_DATABASE_URL: postgresql://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      COOKIE_SECURE: "true"
+      COOKIE_SAMESITE: "lax"
+      CORS_ORIGINS: ${CORS_ORIGINS:-"https://yourdomain.com"}
+      VULTR_INFERENCE_API_KEY: ${VULTR_INFERENCE_API_KEY}
+      VULTR_INFERENCE_BASE_URL: https://api.vultrinference.com/v1
+      VULTR_INFERENCE_MODEL: ${VULTR_INFERENCE_MODEL:-llama-3.3-70b-instruct-fp8}
+      SANDBOX_IMAGE: neuroforge-sandbox:local
+      SANDBOX_TIMEOUT_SECONDS: 60
+      SANDBOX_MAX_TIMEOUT_SECONDS: 120
+      SANDBOX_MEMORY_LIMIT: 1024m
+      SANDBOX_CPU_LIMIT: "1.0"
+    # Docker socket: required for sandbox container orchestration.
+    # DOCKER_GID must be set to the host docker group GID (see deployment runbook).
+    # This allows appuser (non-root) to call Docker without running as root.
+    group_add:
+      - "${DOCKER_GID}"
+    volumes:
+      - neuroforge_uploads_prod:/app/data/uploads
+      - neuroforge_artifacts_prod:/app/data/artifacts
+      - neuroforge_workspaces_prod:/app/data/workspaces
+      - /var/run/docker.sock:/var/run/docker.sock
+    # Explicit resource limits to prevent OOM and runaway CPU on the host
+    mem_limit: 1g
+    cpus: 1.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8020/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - neuroforge-internal
+
+  # =============================================================================
+  # 3. Frontend SPA & Nginx Reverse Proxy
+  # =============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: neuroforge-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - neuroforge-internal
+
+networks:
+  neuroforge-internal:
+    driver: bridge
+
+volumes:
+  neuroforge_pgdata_prod:
+    name: neuroforge_pgdata_prod
+  neuroforge_uploads_prod:
+    name: neuroforge_uploads_prod
+  neuroforge_artifacts_prod:
+    name: neuroforge_artifacts_prod
+  neuroforge_workspaces_prod:
+    name: neuroforge_workspaces_prod

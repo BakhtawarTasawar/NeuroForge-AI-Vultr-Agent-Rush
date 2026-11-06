@@ -1,0 +1,72 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+!.env.example
+
+# Database backups, dumps & local database exports
+*.db
+*.sqlite
+*.sqlite3
+*.backup
+*.backup*
+*.bak
+*.bak*
+*.dump
+*.dump*
+*.dump.gz
+*.sql.gz
+*.sql.bak
+*.sql.backup
+*.pgdump
+*.pg_dump
+neuroforge.backup.*
+backups/
+backup/
+
+# Preserve legitimate project source scripts
+!docker/**/*.sql
+!docker/**/*.sh
+
+# Local datasets and experiment artifacts
+data/
+artifacts/
+experiments/runs/
+
+# IDE / Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
