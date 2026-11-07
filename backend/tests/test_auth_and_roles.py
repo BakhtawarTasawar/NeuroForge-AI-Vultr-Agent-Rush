@@ -100,28 +100,47 @@ def test_refresh_token_rotation_and_logout(client, db_session):
     })
     assert reg.status_code == status.HTTP_201_CREATED
     initial_refresh = reg.cookies.get("nf_refresh_token")
+    initial_csrf = reg.cookies.get("nf_csrf_token")
     assert initial_refresh is not None
+    assert initial_csrf is not None
 
-    # Call refresh
-    ref = client.post("/auth/refresh", cookies={"nf_refresh_token": initial_refresh})
+    # Call refresh with valid CSRF verification
+    ref = client.post(
+        "/auth/refresh",
+        cookies={"nf_refresh_token": initial_refresh, "nf_csrf_token": initial_csrf},
+        headers={"X-CSRF-Token": initial_csrf},
+    )
     assert ref.status_code == status.HTTP_200_OK
     new_refresh = ref.cookies.get("nf_refresh_token")
+    new_csrf = ref.cookies.get("nf_csrf_token") or initial_csrf
     assert new_refresh is not None
     assert new_refresh != initial_refresh
 
     # Old refresh token should now be rejected (revoked)
     client.cookies.clear()
-    stale_ref = client.post("/auth/refresh", cookies={"nf_refresh_token": initial_refresh})
+    stale_ref = client.post(
+        "/auth/refresh",
+        cookies={"nf_refresh_token": initial_refresh, "nf_csrf_token": new_csrf},
+        headers={"X-CSRF-Token": new_csrf},
+    )
     assert stale_ref.status_code == status.HTTP_401_UNAUTHORIZED
 
     # Logout revokes the session
     client.cookies.clear()
-    logout_res = client.post("/auth/logout", cookies={"nf_refresh_token": new_refresh})
+    logout_res = client.post(
+        "/auth/logout",
+        cookies={"nf_refresh_token": new_refresh, "nf_csrf_token": new_csrf},
+        headers={"X-CSRF-Token": new_csrf},
+    )
     assert logout_res.status_code == status.HTTP_200_OK
 
     # Attempting to refresh with the logged-out token fails
     client.cookies.clear()
-    after_logout = client.post("/auth/refresh", cookies={"nf_refresh_token": new_refresh})
+    after_logout = client.post(
+        "/auth/refresh",
+        cookies={"nf_refresh_token": new_refresh, "nf_csrf_token": new_csrf},
+        headers={"X-CSRF-Token": new_csrf},
+    )
     assert after_logout.status_code == status.HTTP_401_UNAUTHORIZED
 
 

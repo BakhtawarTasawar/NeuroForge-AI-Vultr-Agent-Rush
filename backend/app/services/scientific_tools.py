@@ -19,12 +19,10 @@ logger = logging.getLogger("neuroforge.scientific_tools")
 
 
 def _load_parsed_dataset(dataset: Dataset):
-    """Safely resolve and parse dataset bytes."""
+    """Safely resolve and parse dataset directly from storage path without memory duplication."""
     upload_dir = get_upload_dir()
     file_path = resolve_safe_path(upload_dir, dataset.filename)
-    with open(file_path, "rb") as f:
-        content_bytes = f.read()
-    return parse_scientific_dataset(content_bytes, original_filename=dataset.original_name)
+    return parse_scientific_dataset(file_path, original_filename=dataset.original_name, content_hash=dataset.content_hash)
 
 
 

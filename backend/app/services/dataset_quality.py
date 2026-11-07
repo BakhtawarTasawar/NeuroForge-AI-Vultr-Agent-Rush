@@ -134,15 +134,25 @@ def evaluate_scale(values: np.ndarray) -> Tuple[str, str]:
 def compute_pca(
     matrix_df: pd.DataFrame,
     group_mappings: Optional[Dict[str, str]] = None,
+    max_pca_features: int = 2000,
 ) -> Optional[PCAResult]:
     """
     Compute 2D PCA projection across samples.
     Input matrix: features (rows) x samples (columns).
     Transposed for PCA: samples (rows) x features (columns).
+    For high-dimensional matrices, bounds PCA to top variable features to avoid memory spikes.
     """
     try:
+        # If feature dimension is high, select top high-variance features deterministically
+        if len(matrix_df) > max_pca_features:
+            variances = matrix_df.var(axis=1, skipna=True)
+            top_idx = variances.nlargest(max_pca_features).index
+            work_matrix = matrix_df.loc[top_idx]
+        else:
+            work_matrix = matrix_df
+
         # Transpose: samples as observations, features as variables
-        sample_df = matrix_df.T
+        sample_df = work_matrix.T
 
         if len(sample_df) < 2 or len(sample_df.columns) < 2:
             return None
@@ -385,24 +395,55 @@ def compute_dataset_quality(
     constant_features_sample = list(matrix_df.index[constant_mask][:10])
 
     # 3. Overall Value Distributions & Sparsity
-    flat_values = matrix_df.to_numpy().flatten()
-    valid_values = flat_values[~np.isnan(flat_values)]
+    sampled_distribution = False
+    if total_cells <= 500_000:
+        flat_values = matrix_df.to_numpy().flatten()
+        valid_values = flat_values[~np.isnan(flat_values)]
 
-    if len(valid_values) > 0:
-        min_v = float(np.min(valid_values))
-        max_v = float(np.max(valid_values))
-        mean_v = float(np.mean(valid_values))
-        median_v = float(np.median(valid_values))
-        q25_v = float(np.percentile(valid_values, 25))
-        q75_v = float(np.percentile(valid_values, 75))
-        std_v = float(np.std(valid_values))
-        zero_cells = int((valid_values == 0).sum())
-        sparsity = round((zero_cells / len(valid_values) * 100.0), 2)
+        if len(valid_values) > 0:
+            min_v = float(np.min(valid_values))
+            max_v = float(np.max(valid_values))
+            mean_v = float(np.mean(valid_values))
+            median_v = float(np.median(valid_values))
+            q25_v = float(np.percentile(valid_values, 25))
+            q75_v = float(np.percentile(valid_values, 75))
+            std_v = float(np.std(valid_values))
+            zero_cells = int((valid_values == 0).sum())
+            sparsity = round((zero_cells / len(valid_values) * 100.0), 2)
+        else:
+            min_v = max_v = mean_v = median_v = q25_v = q75_v = std_v = 0.0
+            sparsity = 0.0
+
+        scale_type, scale_msg = evaluate_scale(valid_values)
     else:
-        min_v = max_v = mean_v = median_v = q25_v = q75_v = std_v = 0.0
-        sparsity = 0.0
+        # Bounded evaluation for large matrices: compute extrema/zeros without full flatten
+        col_mins = matrix_df.min(skipna=True)
+        col_maxs = matrix_df.max(skipna=True)
+        min_v = float(col_mins.min()) if len(col_mins) > 0 and not col_mins.isna().all() else 0.0
+        max_v = float(col_maxs.max()) if len(col_maxs) > 0 and not col_maxs.isna().all() else 0.0
+        zero_cells = int((matrix_df == 0).sum().sum())
+        valid_cells_count = max(0, total_cells - missing_cells)
+        sparsity = round((zero_cells / valid_cells_count * 100.0) if valid_cells_count > 0 else 0.0, 2)
 
-    scale_type, scale_msg = evaluate_scale(valid_values)
+        # Deterministic systematic sampling across rows
+        row_step = max(1, total_features // 1000)
+        sampled_slice = matrix_df.iloc[::row_step]
+        sample_flat = sampled_slice.to_numpy().flatten()
+        valid_sample = sample_flat[~np.isnan(sample_flat)]
+        if len(valid_sample) > 500_000:
+            valid_sample = valid_sample[:500_000]
+
+        if len(valid_sample) > 0:
+            mean_v = float(np.mean(valid_sample))
+            median_v = float(np.median(valid_sample))
+            q25_v = float(np.percentile(valid_sample, 25))
+            q75_v = float(np.percentile(valid_sample, 75))
+            std_v = float(np.std(valid_sample))
+        else:
+            mean_v = median_v = q25_v = q75_v = std_v = 0.0
+
+        scale_type, scale_msg = evaluate_scale(valid_sample)
+        sampled_distribution = True
 
     dist_stats = DistributionStats(
         min_val=round(min_v, 4),
@@ -420,11 +461,20 @@ def compute_dataset_quality(
     # 4. Per-sample Statistics and Inter-sample Correlation
     sample_summaries: List[SampleQualitySummary] = []
     
-    # Drop rows with any NaN for correlation computation, or fill with median
-    corr_df = matrix_df.dropna()
-    if len(corr_df) < 10 and total_features >= 10:
-        # If too many features had NaNs, fill NaNs with row medians for correlation
-        corr_df = matrix_df.apply(lambda row: row.fillna(row.median()), axis=1).dropna()
+    # Bound correlation calculation to top 2,000 informative features if matrix is large
+    bounded_features = False
+    if total_features > 2000:
+        top_corr_feat = feature_variances.nlargest(2000).index
+        corr_matrix_df = matrix_df.loc[top_corr_feat]
+        bounded_features = True
+    else:
+        corr_matrix_df = matrix_df
+
+    corr_df = corr_matrix_df.dropna()
+    if len(corr_df) < 10 and len(corr_matrix_df) >= 10:
+        # Fast vectorized median imputation across rows
+        row_medians = corr_matrix_df.median(axis=1)
+        corr_df = corr_matrix_df.T.fillna(row_medians).T.dropna()
 
     correlation_matrix: Optional[pd.DataFrame] = None
     if len(corr_df) >= 3 and total_samples >= 2:
@@ -517,6 +567,18 @@ def compute_dataset_quality(
     else:
         health_status = "Excellent"
         summary_notes.append("Dataset is clean with complete matrix dimensions and balanced distributions.")
+
+    if sampled_distribution:
+        summary_notes.append(
+            f"High-dimensional matrix ({total_features} features x {total_samples} samples): "
+            "Distribution stats evaluated via deterministic bounded systematic sampling."
+        )
+
+    if bounded_features:
+        summary_notes.append(
+            f"Inter-sample correlation and PCA bounded to top 2,000 variable features "
+            f"(out of {total_features} total features) for O(1) performance scalability."
+        )
 
     return QualityAssessmentResult(
         total_features=total_features,

@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import uuid
 from pathlib import Path
 from typing import Tuple
@@ -18,6 +19,13 @@ def get_upload_dir() -> Path:
     path = Path(settings.UPLOAD_DIR).resolve()
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def get_temp_upload_dir() -> Path:
+    """Secure staging directory on the same filesystem to support atomic moves."""
+    temp_path = (get_upload_dir() / ".tmp").resolve()
+    temp_path.mkdir(parents=True, exist_ok=True)
+    return temp_path
 
 
 def get_artifact_dir(experiment_id: str) -> Path:
@@ -46,9 +54,16 @@ def resolve_safe_path(base_dir: Path, filename: str) -> Path:
     return target
 
 
-def save_upload_file(content: bytes, original_filename: str) -> Tuple[str, Path]:
+def get_dataset_file_path(filename: str) -> Path:
+    """Resolve and validate a dataset's absolute filesystem path within secure upload storage."""
+    upload_dir = get_upload_dir()
+    return resolve_safe_path(upload_dir, filename)
+
+
+def save_upload_from_file(source_path: Path, original_filename: str) -> Tuple[str, Path]:
     """
-    Store uploaded file safely using a UUID-prefixed filename in the upload directory.
+    Atomically persist an already uploaded temporary file into the secure storage directory.
+    Guarantees no partial files are visible in the upload directory.
     Returns (stored_filename, full_file_path).
     """
     upload_dir = get_upload_dir()
@@ -58,8 +73,58 @@ def save_upload_file(content: bytes, original_filename: str) -> Tuple[str, Path]
     stored_filename = f"dataset_{uuid.uuid4().hex}{clean_ext}"
     target_path = resolve_safe_path(upload_dir, stored_filename)
 
-    with open(target_path, "wb") as f:
-        f.write(content)
+    # Perform atomic replace
+    try:
+        os.replace(source_path, target_path)
+    except OSError:
+        # Cross-filesystem or boundary fallback: stage inside target filesystem then atomic replace
+        temp_dir = get_temp_upload_dir()
+        staging_path = resolve_safe_path(temp_dir, f"stage_{uuid.uuid4().hex}.tmp")
+        try:
+            shutil.copyfile(source_path, staging_path)
+            os.replace(staging_path, target_path)
+            try:
+                source_path.unlink()
+            except OSError:
+                pass
+        except Exception:
+            if staging_path.exists():
+                try:
+                    staging_path.unlink()
+                except OSError:
+                    pass
+            raise
+
+    return stored_filename, target_path
+
+
+def save_upload_file(content: bytes, original_filename: str) -> Tuple[str, Path]:
+    """
+    Store uploaded file bytes safely using atomic staging to prevent partial files.
+    Preserves backward compatibility for callers passing raw bytes.
+    Returns (stored_filename, full_file_path).
+    """
+    upload_dir = get_upload_dir()
+    _, ext = os.path.splitext(original_filename.lower())
+    clean_ext = re.sub(r"[^a-z0-9.]", "", ext)
+
+    stored_filename = f"dataset_{uuid.uuid4().hex}{clean_ext}"
+    target_path = resolve_safe_path(upload_dir, stored_filename)
+
+    temp_dir = get_temp_upload_dir()
+    temp_target = resolve_safe_path(temp_dir, f"part_{uuid.uuid4().hex}.tmp")
+
+    try:
+        with open(temp_target, "wb") as f:
+            f.write(content)
+        os.replace(temp_target, target_path)
+    except Exception:
+        if temp_target.exists():
+            try:
+                temp_target.unlink()
+            except OSError:
+                pass
+        raise
 
     return stored_filename, target_path
 

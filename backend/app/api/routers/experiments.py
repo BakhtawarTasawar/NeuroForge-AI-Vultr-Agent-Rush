@@ -148,8 +148,7 @@ def create_and_run_experiment(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Dataset storage file could not be located.",
                 )
-            content_bytes = file_path.read_bytes()
-            parsed = parse_scientific_dataset(content_bytes, dataset.original_name)
+            parsed = parse_scientific_dataset(file_path, dataset.original_name, content_hash=dataset.content_hash)
 
             # Determine scale inference from quality assessment
             scale_inference = "log2_transformed"

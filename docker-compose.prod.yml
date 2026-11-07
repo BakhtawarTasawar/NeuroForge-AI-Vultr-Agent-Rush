@@ -67,7 +67,7 @@ services:
       - neuroforge_workspaces_prod:/app/data/workspaces
       - /var/run/docker.sock:/var/run/docker.sock
     # Explicit resource limits to prevent OOM and runaway CPU on the host
-    mem_limit: 1g
+    mem_limit: 2g
     cpus: 1.0
     depends_on:
       postgres:

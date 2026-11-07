@@ -1,5 +1,7 @@
+import hashlib
 import json
 import os
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
@@ -25,7 +27,14 @@ from app.services.dataset_quality import (
     compute_dataset_quality,
     validate_group_mappings,
 )
-from app.services.storage import get_upload_dir, resolve_safe_path, save_upload_file
+from app.services.storage import (
+    get_dataset_file_path,
+    get_temp_upload_dir,
+    get_upload_dir,
+    resolve_safe_path,
+    save_upload_file,
+    save_upload_from_file,
+)
 
 router = APIRouter(prefix="/datasets", tags=["Dataset Library"])
 
@@ -48,15 +57,23 @@ def get_user_dataset_or_403(dataset_id: str, current_user: User, db: Session) ->
     return dataset
 
 
-def load_dataset_file_content(dataset: Dataset) -> bytes:
-    """Safely load dataset bytes from storage directory."""
-    upload_dir = get_upload_dir()
-    file_path = resolve_safe_path(upload_dir, dataset.filename)
+def get_user_dataset_file_path(dataset: Dataset) -> Path:
+    """Safely resolve dataset path in secure storage without loading file into memory."""
+    try:
+        file_path = get_dataset_file_path(dataset.filename)
+    except PermissionError as pe:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(pe))
     if not file_path.exists() or not file_path.is_file():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The physical data file could not be located in secure storage.",
         )
+    return file_path
+
+
+def load_dataset_file_content(dataset: Dataset) -> bytes:
+    """Safely load dataset bytes from storage directory (backward compatibility)."""
+    file_path = get_user_dataset_file_path(dataset)
     try:
         return file_path.read_bytes()
     except Exception as e:
@@ -139,39 +156,43 @@ async def upload_dataset(
                 detail="You do not have permission to upload datasets into this project.",
             )
 
-    # 2. Bounded chunked reading: enforce exactly 200 MiB (209,715,200 bytes) with immediate rejection
+    # 2. Stream upload directly to a temporary file while calculating incremental SHA-256
     CHUNK_SIZE = 1024 * 1024  # 1 MiB chunk
-    chunks = []
+    temp_dir = get_temp_upload_dir()
+    temp_path = resolve_safe_path(temp_dir, f"upload_{uuid.uuid4().hex}.tmp")
+
+    hasher = hashlib.sha256()
     total_bytes = 0
+
     try:
-        while True:
-            chunk = await file.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            total_bytes += len(chunk)
-            if total_bytes > MAX_FILE_SIZE_BYTES:
-                raise HTTPException(
-                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                    detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE_BYTES // (1024*1024)} MB.",
-                )
-            chunks.append(chunk)
-    finally:
-        await file.close()
-
-    if total_bytes == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The uploaded file is empty (0 bytes).",
-        )
-
-    content = b"".join(chunks)
-
-    stored_filename = None
-    target_path = None
-    try:
-        # 3. Scientific parsing and orientation assessment
         try:
-            parsed = parse_scientific_dataset(content, original_filename)
+            with open(temp_path, "wb") as f_out:
+                while True:
+                    chunk = await file.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    total_bytes += len(chunk)
+                    if total_bytes > MAX_FILE_SIZE_BYTES:
+                        raise HTTPException(
+                            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                            detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE_BYTES // (1024*1024)} MB.",
+                        )
+                    hasher.update(chunk)
+                    f_out.write(chunk)
+        finally:
+            await file.close()
+
+        if total_bytes == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The uploaded file is empty (0 bytes).",
+            )
+
+        content_hash = hasher.hexdigest()
+
+        # 3. Scientific parsing and orientation assessment directly from stream/disk
+        try:
+            parsed = parse_scientific_dataset(temp_path, original_filename, content_hash=content_hash)
         except DatasetParseError as pe:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -185,8 +206,8 @@ async def upload_dataset(
         except Exception:
             quality_json = None
 
-        # 5. Persist file content to secure storage directory
-        stored_filename, target_path = save_upload_file(content, original_filename)
+        # 5. Persist file atomically to secure storage directory
+        stored_filename, target_path = save_upload_from_file(temp_path, original_filename)
 
         initial_status = "Needs Orientation Confirmation" if parsed.orientation.detected_orientation == "ambiguous" else "Validated"
 
@@ -213,17 +234,27 @@ async def upload_dataset(
             experimental_condition=experimental_condition,
             measurement_type=measurement_type or ("RNA-Seq Expression" if "GCT" in parsed.file_format else "Gene Expression Matrix"),
         )
-        db.add(dataset)
-        db.commit()
-        db.refresh(dataset)
-        return dataset
-    except Exception:
-        if target_path and target_path.exists():
+        try:
+            db.add(dataset)
+            db.commit()
+            db.refresh(dataset)
+            return dataset
+        except Exception:
+            db.rollback()
+            if target_path and target_path.exists():
+                try:
+                    target_path.unlink()
+                except Exception:
+                    pass
+            raise
+
+    finally:
+        # Guarantee cleanup of temporary file if it still exists
+        if temp_path.exists():
             try:
-                target_path.unlink()
+                temp_path.unlink()
             except Exception:
                 pass
-        raise
 
 
 @router.get(
@@ -237,10 +268,10 @@ def inspect_dataset(
     db: Session = Depends(get_db),
 ):
     dataset = get_user_dataset_or_403(dataset_id, current_user, db)
-    content = load_dataset_file_content(dataset)
+    file_path = get_user_dataset_file_path(dataset)
 
     try:
-        parsed = parse_scientific_dataset(content, dataset.original_name)
+        parsed = parse_scientific_dataset(file_path, dataset.original_name, content_hash=dataset.content_hash)
     except DatasetParseError as pe:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -283,10 +314,10 @@ def preview_dataset(
     db: Session = Depends(get_db),
 ):
     dataset = get_user_dataset_or_403(dataset_id, current_user, db)
-    content = load_dataset_file_content(dataset)
+    file_path = get_user_dataset_file_path(dataset)
 
     try:
-        parsed = parse_scientific_dataset(content, dataset.original_name)
+        parsed = parse_scientific_dataset(file_path, dataset.original_name, content_hash=dataset.content_hash)
     except DatasetParseError as pe:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -343,10 +374,10 @@ def get_dataset_quality(
     db: Session = Depends(get_db),
 ):
     dataset = get_user_dataset_or_403(dataset_id, current_user, db)
-    content = load_dataset_file_content(dataset)
+    file_path = get_user_dataset_file_path(dataset)
 
     try:
-        parsed = parse_scientific_dataset(content, dataset.original_name)
+        parsed = parse_scientific_dataset(file_path, dataset.original_name, content_hash=dataset.content_hash)
     except DatasetParseError as pe:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -401,9 +432,9 @@ def update_orientation(
         dataset.sample_id_column = req.sample_id_column
 
     # Recalculate dimensions if orientation changed
-    content = load_dataset_file_content(dataset)
+    file_path = get_user_dataset_file_path(dataset)
     try:
-        parsed = parse_scientific_dataset(content, dataset.original_name)
+        parsed = parse_scientific_dataset(file_path, dataset.original_name, content_hash=dataset.content_hash)
         if req.orientation == "samples_as_rows":
             dataset.sample_count = parsed.total_raw_rows
             dataset.feature_count = parsed.total_raw_cols - 1
@@ -469,10 +500,10 @@ def configure_groups(
     db: Session = Depends(get_db),
 ):
     dataset = get_user_dataset_or_403(dataset_id, current_user, db)
-    content = load_dataset_file_content(dataset)
+    file_path = get_user_dataset_file_path(dataset)
 
     try:
-        parsed = parse_scientific_dataset(content, dataset.original_name)
+        parsed = parse_scientific_dataset(file_path, dataset.original_name, content_hash=dataset.content_hash)
     except DatasetParseError as pe:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
