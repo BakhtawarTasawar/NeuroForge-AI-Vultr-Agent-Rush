@@ -25,8 +25,6 @@ export const AppShell: React.FC = () => {
         return 'Research Reports';
       case '/profile':
         return 'My Profile';
-      case '/settings':
-        return 'Account Settings';
       case '/users':
         return 'User Management';
       default:

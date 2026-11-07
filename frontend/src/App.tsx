@@ -16,7 +16,7 @@ import { ExperimentsPage } from './pages/app/ExperimentsPage';
 import { FindingsPage } from './pages/app/FindingsPage';
 import { ReportsPage } from './pages/app/ReportsPage';
 import { ProfilePage } from './pages/app/ProfilePage';
-import { SettingsPage } from './pages/app/SettingsPage';
+
 import { UserManagementPage } from './pages/app/UserManagementPage';
 import { ResearchWorkspacePage } from './pages/app/ResearchWorkspacePage';
 
@@ -64,7 +64,10 @@ export default function App() {
           <Route path="findings" element={<FindingsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="profile" element={<ProfilePage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<Navigate to="/profile" replace />} />
+          <Route path="app/settings" element={<Navigate to="/profile" replace />} />
+          <Route path="app/profile" element={<Navigate to="/profile" replace />} />
+
           <Route
             path="users"
             element={

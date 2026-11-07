@@ -382,10 +382,10 @@ export const ExperimentsPage: React.FC = () => {
           </div>
           <div>
             <span className="font-semibold text-white block">
-              Blast Radius Zero Isolation Active
+              Restricted Docker Execution
             </span>
             <span className="text-[11px] text-slate-400">
-              Container network disabled &bull; Root filesystem read-only &bull; 512 MB memory boundary &bull; 30s timeout &bull; Non-root user (10001)
+              Network disabled &bull; Read-only root filesystem &bull; Configured memory and CPU limits &bull; 1 CPU limit &bull; 60s default timeout
             </span>
           </div>
         </div>
@@ -568,11 +568,10 @@ export const ExperimentsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setLaunchMode('differential_expression')}
-              className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors ${
-                launchMode === 'differential_expression'
-                  ? 'bg-cyan-500 text-slate-950'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors ${launchMode === 'differential_expression'
+                ? 'bg-cyan-500 text-slate-950'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               <Activity className="w-4 h-4" />
               Two-Group Differential Expression (Welch t-test)
@@ -580,11 +579,10 @@ export const ExperimentsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setLaunchMode('custom_script')}
-              className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors ${
-                launchMode === 'custom_script'
-                  ? 'bg-cyan-500 text-slate-950'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors ${launchMode === 'custom_script'
+                ? 'bg-cyan-500 text-slate-950'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               <Sliders className="w-4 h-4" />
               Custom Python Script
@@ -701,18 +699,16 @@ export const ExperimentsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSampleMappings({ ...sampleMappings, [sid]: groupAName })}
-                            className={`px-2 py-0.5 rounded text-[11px] font-sans transition-colors ${
-                              currentGrp === groupAName ? 'bg-blue-600 text-white font-semibold' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                            }`}
+                            className={`px-2 py-0.5 rounded text-[11px] font-sans transition-colors ${currentGrp === groupAName ? 'bg-blue-600 text-white font-semibold' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                              }`}
                           >
                             {groupAName}
                           </button>
                           <button
                             type="button"
                             onClick={() => setSampleMappings({ ...sampleMappings, [sid]: groupBName })}
-                            className={`px-2 py-0.5 rounded text-[11px] font-sans transition-colors ${
-                              currentGrp === groupBName ? 'bg-purple-600 text-white font-semibold' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                            }`}
+                            className={`px-2 py-0.5 rounded text-[11px] font-sans transition-colors ${currentGrp === groupBName ? 'bg-purple-600 text-white font-semibold' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                              }`}
                           >
                             {groupBName}
                           </button>
@@ -723,9 +719,8 @@ export const ExperimentsPage: React.FC = () => {
                               delete updated[sid];
                               setSampleMappings(updated);
                             }}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-sans transition-colors ${
-                              !currentGrp ? 'bg-slate-700 text-slate-200' : 'bg-slate-900 text-slate-500 hover:bg-slate-800'
-                            }`}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-sans transition-colors ${!currentGrp ? 'bg-slate-700 text-slate-200' : 'bg-slate-900 text-slate-500 hover:bg-slate-800'
+                              }`}
                           >
                             Clear
                           </button>
@@ -840,45 +835,40 @@ export const ExperimentsPage: React.FC = () => {
             <div className="flex border-b border-slate-800 px-6 bg-slate-950/40">
               <button
                 onClick={() => setActiveDetailTab('summary')}
-                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${
-                  activeDetailTab === 'summary' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
+                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${activeDetailTab === 'summary' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
               >
                 <Activity className="w-4 h-4" />
                 Statistical Summary
               </button>
               <button
                 onClick={() => setActiveDetailTab('plots')}
-                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${
-                  activeDetailTab === 'plots' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
+                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${activeDetailTab === 'plots' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
               >
                 <Eye className="w-4 h-4" />
                 Volcano & PCA Plots
               </button>
               <button
                 onClick={() => setActiveDetailTab('table')}
-                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${
-                  activeDetailTab === 'table' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
+                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${activeDetailTab === 'table' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
               >
                 <Table className="w-4 h-4" />
                 Differential Features Table
               </button>
               <button
                 onClick={() => setActiveDetailTab('reproducibility')}
-                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${
-                  activeDetailTab === 'reproducibility' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
+                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${activeDetailTab === 'reproducibility' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
               >
                 <FileText className="w-4 h-4" />
                 Reproducibility Manifest
               </button>
               <button
                 onClick={() => setActiveDetailTab('diagnostics')}
-                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${
-                  activeDetailTab === 'diagnostics' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
+                className={`py-3 px-4 text-xs font-semibold border-b-2 flex items-center gap-2 transition-colors ${activeDetailTab === 'diagnostics' ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
               >
                 <Layers className="w-4 h-4" />
                 Execution Diagnostics

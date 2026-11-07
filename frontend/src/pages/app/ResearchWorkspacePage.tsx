@@ -421,7 +421,7 @@ export const ResearchWorkspacePage: React.FC = () => {
           title="No Accessible Research Projects"
           description="Autonomous research investigations require an active research project. Create a project to organize hypotheses, datasets, and experiment runs."
           actionLabel={user?.role !== 'VIEWER' ? "Create Research Project" : undefined}
-          onAction={user?.role !== 'VIEWER' ? () => navigate('/app/projects') : undefined}
+          onAction={user?.role !== 'VIEWER' ? () => navigate('/projects') : undefined}
           actionIcon={<Plus className="h-4 w-4" />}
         />
       ) : sessions.length === 0 ? (
@@ -709,7 +709,7 @@ export const ResearchWorkspacePage: React.FC = () => {
                           </h4>
                           <p className="text-xs text-amber-300/80 mt-1">
                             The autonomous agent formulated the following structured research plan based on empirical dataset inspection.
-                            Per Blast Radius Zero protocols, no experiment or Docker sandbox code will run until you approve this plan.
+                            Under the human-in-the-loop approval policy, no experiment or Docker sandbox code will run until you approve this plan.
                           </p>
                         </div>
                       </div>
@@ -1211,7 +1211,7 @@ export const ResearchWorkspacePage: React.FC = () => {
           <div className="p-3 rounded-lg bg-cyan-950/40 border border-cyan-800/50 text-[11px] text-cyan-300 flex items-start gap-2">
             <Shield className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
             <span>
-              <strong>Blast Radius Zero Guarantee:</strong> The autonomous agent plans experiments and interprets results via Vultr Serverless Inference. All calculations occur in the deterministic statistical engine and isolated Docker sandbox.
+              <strong>Restricted Execution:</strong> The autonomous agent plans experiments and interprets results through the configured inference service. Statistical calculations run in a restricted Docker container. Container isolation is a defense-in-depth measure, not an absolute security guarantee.
             </span>
           </div>
 
