@@ -8,16 +8,13 @@ ENV/
 __pycache__/
 *.py[cod]
 *$py.class
-
 # Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
-
 # Node & Frontend dependencies
 node_modules/
 .pnpm-store/
-
 # Build artifacts
 dist/
 build/
@@ -25,13 +22,11 @@ build/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
-
 # Environment variables & secrets
 .env
 .env.*
 *.env
 !.env.example
-
 # Database backups, dumps & local database exports
 *.db
 *.sqlite
@@ -51,22 +46,20 @@ vite.config.d.ts
 neuroforge.backup.*
 backups/
 backup/
-
 # Preserve legitimate project source scripts
 !docker/**/*.sql
 !docker/**/*.sh
-
 # Local datasets and experiment artifacts
 data/
 artifacts/
 experiments/runs/
-
 # IDE / Editor artifacts
 .vscode/
 .idea/
 *.swp
 *.swo
-
 # OS files
 .DS_Store
 Thumbs.db
+run_browser_qa.py
+neuroforge.backup.20261104_133816

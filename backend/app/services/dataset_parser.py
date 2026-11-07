@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 
-MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB safety limit
+MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024  # 200 MiB upload limit
 
 # Known gene symbol / feature patterns
 RE_HGNC = re.compile(r"^[A-Z][A-Z0-9_\-\.]{1,14}$")

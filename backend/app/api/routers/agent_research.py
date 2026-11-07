@@ -111,6 +111,18 @@ def create_and_start_research_session(
     if not dataset:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specified dataset not found.")
 
+    if current_user.role != UserRole.ADMIN.value and dataset.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access the specified dataset.",
+        )
+
+    if dataset.project_id != project.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dataset is not attached to this research project.",
+        )
+
     # Create persistent session record
     session = ResearchSession(
         project_id=project.id,

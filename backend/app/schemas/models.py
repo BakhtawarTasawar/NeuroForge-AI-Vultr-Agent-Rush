@@ -233,6 +233,10 @@ class DatasetMetadataUpdateRequest(BaseModel):
     publication_reference: Optional[str] = Field(None, max_length=255)
 
 
+class DatasetAttachRequest(BaseModel):
+    project_id: str = Field(..., min_length=1, max_length=36)
+
+
 class DatasetGroupMappingRequest(BaseModel):
     group_mappings: Dict[str, str]
     control_group: Optional[str] = None

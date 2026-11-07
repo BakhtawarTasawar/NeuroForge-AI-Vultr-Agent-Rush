@@ -26,12 +26,11 @@ def list_projects(
     if current_user.role == UserRole.ADMIN.value:
         projects = db.query(Project).order_by(Project.created_at.desc()).all()
     else:
-        # Researchers and Viewers see owned or platform research projects
+        # Strict tenant isolation: researchers and viewers see ONLY their own projects.
+        # No project-sharing mechanism exists; cross-user visibility is a data leak.
         projects = (
             db.query(Project)
-            .filter(
-                (Project.owner_id == current_user.id) | (Project.status != "Archived")
-            )
+            .filter(Project.owner_id == current_user.id)
             .order_by(Project.created_at.desc())
             .all()
         )
@@ -107,6 +106,13 @@ def get_project(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The requested scientific research project was not found.",
+        )
+
+    # Enforce ownership or ADMIN access
+    if current_user.role != UserRole.ADMIN.value and project.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this research project.",
         )
 
     return ProjectResponse(

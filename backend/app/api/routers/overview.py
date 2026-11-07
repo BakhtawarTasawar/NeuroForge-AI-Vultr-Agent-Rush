@@ -23,11 +23,10 @@ def get_overview_stats(
         datasets_count = db.query(Dataset).count()
         experiments_count = db.query(Experiment).count()
     else:
+        # Strict tenant isolation: count only the authenticated user's own resources.
         projects_count = (
             db.query(Project)
-            .filter(
-                (Project.owner_id == current_user.id) | (Project.status != "Archived")
-            )
+            .filter(Project.owner_id == current_user.id)
             .count()
         )
         datasets_count = db.query(Dataset).filter(Dataset.owner_id == current_user.id).count()

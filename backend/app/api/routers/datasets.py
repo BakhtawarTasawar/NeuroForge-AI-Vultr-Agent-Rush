@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db, require_roles, verify_csrf
 from app.db.models import Dataset, Project, User, UserRole
 from app.schemas.models import (
+    DatasetAttachRequest,
     DatasetGroupMappingRequest,
     DatasetInspectionResponse,
     DatasetMetadataUpdateRequest,
@@ -124,72 +125,105 @@ async def upload_dataset(
             detail=f"Unsupported scientific file format '{ext}'. Accepted formats: {', '.join(sorted(ALLOWED_EXTENSIONS))}.",
         )
 
-    content = await file.read()
-    if len(content) == 0:
+    # 1. Validate project_id existence and ownership BEFORE reading or parsing the uploaded file
+    if project_id:
+        proj = db.query(Project).filter(Project.id == project_id).first()
+        if not proj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="The requested scientific research project was not found.",
+            )
+        if current_user.role != UserRole.ADMIN.value and proj.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to upload datasets into this project.",
+            )
+
+    # 2. Bounded chunked reading: enforce exactly 200 MiB (209,715,200 bytes) with immediate rejection
+    CHUNK_SIZE = 1024 * 1024  # 1 MiB chunk
+    chunks = []
+    total_bytes = 0
+    try:
+        while True:
+            chunk = await file.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            total_bytes += len(chunk)
+            if total_bytes > MAX_FILE_SIZE_BYTES:
+                raise HTTPException(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE_BYTES // (1024*1024)} MB.",
+                )
+            chunks.append(chunk)
+    finally:
+        await file.close()
+
+    if total_bytes == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The uploaded file is empty (0 bytes).",
         )
-    if len(content) > MAX_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File exceeds maximum allowed size of {MAX_FILE_SIZE_BYTES // (1024*1024)} MB.",
-        )
 
-    # Scientific parsing and orientation assessment
-    try:
-        parsed = parse_scientific_dataset(content, original_filename)
-    except DatasetParseError as pe:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Scientific dataset parsing error: {str(pe)}",
-        )
+    content = b"".join(chunks)
 
-    # Initial deterministic quality assessment
+    stored_filename = None
+    target_path = None
     try:
-        quality_res = compute_dataset_quality(parsed.numeric_matrix)
-        quality_json = json.dumps(quality_res.to_dict())
+        # 3. Scientific parsing and orientation assessment
+        try:
+            parsed = parse_scientific_dataset(content, original_filename)
+        except DatasetParseError as pe:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Scientific dataset parsing error: {str(pe)}",
+            )
+
+        # 4. Initial deterministic quality assessment
+        try:
+            quality_res = compute_dataset_quality(parsed.numeric_matrix)
+            quality_json = json.dumps(quality_res.to_dict())
+        except Exception:
+            quality_json = None
+
+        # 5. Persist file content to secure storage directory
+        stored_filename, target_path = save_upload_file(content, original_filename)
+
+        initial_status = "Needs Orientation Confirmation" if parsed.orientation.detected_orientation == "ambiguous" else "Validated"
+
+        dataset = Dataset(
+            project_id=project_id,
+            owner_id=current_user.id,
+            filename=stored_filename,
+            original_name=original_filename,
+            file_size_bytes=total_bytes,
+            file_format=parsed.file_format,
+            status=initial_status,
+            sample_count=parsed.num_samples,
+            feature_count=parsed.num_features,
+            content_hash=parsed.content_hash,
+            matrix_orientation=parsed.orientation.detected_orientation,
+            feature_id_column=parsed.orientation.feature_id_col,
+            sample_id_column=parsed.orientation.sample_id_col,
+            quality_assessment=quality_json,
+            group_mappings=None,
+            title=title or original_filename,
+            domain="Cancer Gene-Expression",
+            organism=organism or "Homo sapiens",
+            tissue=tissue,
+            experimental_condition=experimental_condition,
+            measurement_type=measurement_type or ("RNA-Seq Expression" if "GCT" in parsed.file_format else "Gene Expression Matrix"),
+        )
+        db.add(dataset)
+        db.commit()
+        db.refresh(dataset)
+        return dataset
     except Exception:
-        quality_json = None
-
-    # Validate project_id if provided
-    if project_id:
-        proj = db.query(Project).filter(Project.id == project_id).first()
-        if not proj:
-            project_id = None
-
-    # Persist file content to secure storage directory
-    stored_filename, _ = save_upload_file(content, original_filename)
-
-    initial_status = "Needs Orientation Confirmation" if parsed.orientation.detected_orientation == "ambiguous" else "Validated"
-
-    dataset = Dataset(
-        project_id=project_id,
-        owner_id=current_user.id,
-        filename=stored_filename,
-        original_name=original_filename,
-        file_size_bytes=len(content),
-        file_format=parsed.file_format,
-        status=initial_status,
-        sample_count=parsed.num_samples,
-        feature_count=parsed.num_features,
-        content_hash=parsed.content_hash,
-        matrix_orientation=parsed.orientation.detected_orientation,
-        feature_id_column=parsed.orientation.feature_id_col,
-        sample_id_column=parsed.orientation.sample_id_col,
-        quality_assessment=quality_json,
-        group_mappings=None,
-        title=title or original_filename,
-        domain="Cancer Gene-Expression",
-        organism=organism or "Homo sapiens",
-        tissue=tissue,
-        experimental_condition=experimental_condition,
-        measurement_type=measurement_type or ("RNA-Seq Expression" if "GCT" in parsed.file_format else "Gene Expression Matrix"),
-    )
-    db.add(dataset)
-    db.commit()
-    db.refresh(dataset)
-    return dataset
+        if target_path and target_path.exists():
+            try:
+                target_path.unlink()
+            except Exception:
+                pass
+        raise
 
 
 @router.get(
@@ -477,6 +511,48 @@ def configure_groups(
         "message": "Sample groups updated successfully.",
         "group_validation": quality_res.group_validation,
     }
+
+
+@router.post(
+    "/{dataset_id}/attach",
+    response_model=DatasetResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Attach a standalone dataset to a research project (Researchers and Admins only)",
+)
+def attach_dataset_to_project(
+    dataset_id: str,
+    req: DatasetAttachRequest,
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.RESEARCHER])),
+    db: Session = Depends(get_db),
+):
+    dataset = get_user_dataset_or_403(dataset_id, current_user, db)
+
+    project = db.query(Project).filter(Project.id == req.project_id).first()
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Research project not found.",
+        )
+
+    if current_user.role != UserRole.ADMIN.value and project.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to attach datasets to this project.",
+        )
+
+    if dataset.project_id == project.id:
+        return dataset
+
+    if dataset.project_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Dataset is already attached to another project.",
+        )
+
+    dataset.project_id = project.id
+    db.commit()
+    db.refresh(dataset)
+    return dataset
 
 
 @router.delete(

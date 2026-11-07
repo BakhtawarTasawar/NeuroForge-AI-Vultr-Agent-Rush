@@ -409,6 +409,13 @@ def list_project_experiments(
             detail="The requested research project was not found.",
         )
 
+    # Enforce ownership or ADMIN access on the parent project
+    if current_user.role != UserRole.ADMIN.value and project.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view experiments in this project.",
+        )
+
     experiments = (
         db.query(Experiment)
         .filter(Experiment.project_id == project_id)

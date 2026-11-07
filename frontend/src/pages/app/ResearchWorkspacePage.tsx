@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Sparkles,
   Play,
@@ -13,6 +14,7 @@ import {
   Plus,
   Check,
   X,
+  FolderGit2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient, formatErrorMessage } from '../../services/api';
@@ -35,6 +37,7 @@ import { LoadingSkeleton } from '../../components/common/LoadingSkeleton';
 
 export const ResearchWorkspacePage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [sessions, setSessions] = useState<ResearchSession[]>([]);
@@ -79,17 +82,22 @@ export const ResearchWorkspacePage: React.FC = () => {
         apiClient.get<Project[]>('/projects'),
         apiClient.get<Dataset[]>('/datasets'),
       ]);
-      const accessibleProjects = projRes.data.filter(
-        (p) => user?.role === 'ADMIN' || p.owner_id === user?.id
-      );
-      setProjects(accessibleProjects.length > 0 ? accessibleProjects : projRes.data);
+      // Backend now enforces tenant isolation — use the response directly.
+      const accessibleProjects = projRes.data;
+      setProjects(accessibleProjects);
       setDatasets(dataRes.data);
 
-      const targetProjects = accessibleProjects.length > 0 ? accessibleProjects : projRes.data;
-      if (targetProjects.length > 0) {
-        const initialProj = targetProjects[0].id;
+      if (accessibleProjects.length > 0) {
+        const initialProj = accessibleProjects[0].id;
         setSelectedProjectId(initialProj);
+        setNewDatasetId('');
         await loadSessionsForProject(initialProj);
+      } else {
+        setSelectedProjectId('');
+        setNewDatasetId('');
+        setSessions([]);
+        setActiveSession(null);
+        setEvents([]);
       }
     } catch (err) {
       setError(formatErrorMessage(err));
@@ -110,6 +118,10 @@ export const ResearchWorkspacePage: React.FC = () => {
       }
     } catch (err) {
       setError(formatErrorMessage(err));
+      // Gracefully reset session state so an unauthorized project does not stay selected
+      setSessions([]);
+      setActiveSession(null);
+      setEvents([]);
     }
   };
 
@@ -165,8 +177,11 @@ export const ResearchWorkspacePage: React.FC = () => {
 
   const handleProjectChange = async (projId: string) => {
     setSelectedProjectId(projId);
+    setNewDatasetId('');
     await loadSessionsForProject(projId);
   };
+
+  const projectDatasets = datasets.filter((d) => d.project_id === selectedProjectId);
 
   const handleLaunchSession = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,7 +190,12 @@ export const ResearchWorkspacePage: React.FC = () => {
       return;
     }
     if (!newDatasetId) {
-      setFormError('Please select a dataset to investigate.');
+      setFormError('Please select a dataset attached to this project.');
+      return;
+    }
+    const selectedDs = projectDatasets.find((d) => d.id === newDatasetId);
+    if (!selectedDs) {
+      setFormError('The selected dataset is not attached to this research project.');
       return;
     }
     if (!newTitle.trim()) {
@@ -342,24 +362,36 @@ export const ResearchWorkspacePage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           {/* Project selector */}
-          <select
-            value={selectedProjectId}
-            onChange={(e) => handleProjectChange(e.target.value)}
-            className="h-10 px-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                Project: {p.title}
-              </option>
-            ))}
-          </select>
+          {projects.length > 0 ? (
+            <select
+              value={selectedProjectId}
+              onChange={(e) => handleProjectChange(e.target.value)}
+              className="h-10 px-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            >
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  Project: {p.title}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-xs font-mono text-amber-400 bg-amber-950/40 border border-amber-800/40 px-3 py-2 rounded-lg">
+              No Accessible Projects
+            </span>
+          )}
 
           {user?.role !== 'VIEWER' && (
             <Button
               variant="primary"
               size="sm"
               icon={<Plus className="h-4 w-4" />}
-              onClick={() => setIsNewSessionOpen(true)}
+              onClick={() => {
+                if (projects.length === 0) {
+                  setError('Please create a research project first before launching an autonomous research session.');
+                } else {
+                  setIsNewSessionOpen(true);
+                }
+              }}
             >
               New Research Session
             </Button>
@@ -383,7 +415,16 @@ export const ResearchWorkspacePage: React.FC = () => {
       )}
 
       {/* Main Workspace Layout */}
-      {sessions.length === 0 ? (
+      {projects.length === 0 ? (
+        <EmptyState
+          icon={<FolderGit2 className="h-6 w-6" />}
+          title="No Accessible Research Projects"
+          description="Autonomous research investigations require an active research project. Create a project to organize hypotheses, datasets, and experiment runs."
+          actionLabel={user?.role !== 'VIEWER' ? "Create Research Project" : undefined}
+          onAction={user?.role !== 'VIEWER' ? () => navigate('/app/projects') : undefined}
+          actionIcon={<Plus className="h-4 w-4" />}
+        />
+      ) : sessions.length === 0 ? (
         <EmptyState
           icon={<Sparkles className="h-6 w-6" />}
           title="No Autonomous Research Sessions Yet"
@@ -1059,13 +1100,35 @@ export const ResearchWorkspacePage: React.FC = () => {
 
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">
+              Target Research Project *
+            </label>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => handleProjectChange(e.target.value)}
+              className="w-full h-10 px-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              required
+            >
+              {projects.length === 0 ? (
+                <option value="">No projects available — please create one first</option>
+              ) : (
+                projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">
               Select Dataset *
             </label>
             <select
               value={newDatasetId}
               onChange={(e) => {
                 setNewDatasetId(e.target.value);
-                const ds = datasets.find((d) => d.id === e.target.value);
+                const ds = projectDatasets.find((d) => d.id === e.target.value);
                 if (ds) {
                   if (ds.control_group) setGroupAName(ds.control_group);
                   if (ds.treatment_group) setGroupBName(ds.treatment_group);
@@ -1073,14 +1136,24 @@ export const ResearchWorkspacePage: React.FC = () => {
               }}
               className="w-full h-10 px-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
               required
+              disabled={projectDatasets.length === 0}
             >
-              <option value="">-- Choose a Dataset --</option>
-              {datasets.map((d) => (
+              <option value="">
+                {projectDatasets.length === 0
+                  ? '-- No datasets attached to this project --'
+                  : '-- Choose an Attached Dataset --'}
+              </option>
+              {projectDatasets.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.original_name} ({d.feature_count} features, {d.sample_count} samples)
+                  {d.title || d.original_name} ({d.feature_count ?? 0} features, {d.sample_count ?? 0} samples)
                 </option>
               ))}
             </select>
+            {projectDatasets.length === 0 && (
+              <p className="mt-1 text-[11px] text-amber-400">
+                No datasets are currently attached to this project. Upload a dataset selecting this project or attach one from the Dataset Library.
+              </p>
+            )}
           </div>
 
           <Input

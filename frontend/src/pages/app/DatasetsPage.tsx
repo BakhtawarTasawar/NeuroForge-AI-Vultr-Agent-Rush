@@ -20,6 +20,7 @@ import {
   Dataset,
   DatasetInspection,
   DatasetPreview,
+  Project,
   QualityAssessmentResult,
 } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -32,6 +33,8 @@ type ActiveTab = 'overview' | 'preview' | 'quality' | 'groups';
 export const DatasetsPage: React.FC = () => {
   const { user } = useAuth();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedUploadProjectId, setSelectedUploadProjectId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -72,8 +75,12 @@ export const DatasetsPage: React.FC = () => {
   const fetchDatasets = async () => {
     try {
       setIsLoading(true);
-      const res = await apiClient.get<Dataset[]>('/datasets');
-      setDatasets(res.data);
+      const [dataRes, projRes] = await Promise.all([
+        apiClient.get<Dataset[]>('/datasets'),
+        apiClient.get<Project[]>('/projects').catch(() => ({ data: [] as Project[] })),
+      ]);
+      setDatasets(dataRes.data);
+      setProjects(projRes.data);
     } catch (err) {
       setUploadError(formatErrorMessage(err));
     } finally {
@@ -98,17 +105,34 @@ export const DatasetsPage: React.FC = () => {
       return;
     }
 
+    // 200 MiB file-size validation (matches backend MAX_FILE_SIZE_BYTES)
+    const MAX_FILE_SIZE = 200 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError(
+        `File exceeds maximum allowed size of 200 MiB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)} MiB.`
+      );
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
+    if (selectedUploadProjectId && selectedUploadProjectId.trim() !== '') {
+      formData.append('project_id', selectedUploadProjectId.trim());
+    }
 
     setIsUploading(true);
     try {
       const res = await apiClient.post<Dataset>('/datasets/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000, // 5 minutes for large genomic datasets (up to 200 MiB)
       });
-      setDatasets([res.data, ...datasets]);
+      setDatasets((prev) => [res.data, ...prev]);
+      const attachedProj = projects.find((p) => p.id === selectedUploadProjectId);
+      const projNotice = attachedProj
+        ? ` and attached to project "${attachedProj.title}"`
+        : ' as a standalone dataset';
       setUploadSuccess(
-        `Dataset "${file.name}" uploaded and parsed (${res.data.feature_count ?? 0} features × ${res.data.sample_count ?? 0} samples).`
+        `Dataset "${file.name}" uploaded and parsed (${res.data.feature_count ?? 0} features × ${res.data.sample_count ?? 0} samples)${projNotice}.`
       );
     } catch (err) {
       setUploadError(formatErrorMessage(err));
@@ -292,6 +316,30 @@ export const DatasetsPage: React.FC = () => {
       {/* Upload Zone (Researchers & Admins) */}
       {canUpload && (
         <section className="space-y-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+            <div>
+              <label htmlFor="upload-target-project" className="text-xs font-semibold text-slate-300 block">
+                Target Research Project (Optional)
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Attach directly to an existing project upon upload, or leave blank to keep as a standalone dataset.
+              </span>
+            </div>
+            <select
+              id="upload-target-project"
+              value={selectedUploadProjectId}
+              onChange={(e) => setSelectedUploadProjectId(e.target.value)}
+              className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 w-full sm:w-64"
+            >
+              <option value="">No Project (Standalone Dataset)</option>
+              {projects.map((proj) => (
+                <option key={proj.id} value={proj.id}>
+                  {proj.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -328,7 +376,7 @@ export const DatasetsPage: React.FC = () => {
                   </button>
                 </p>
                 <p className="text-xs text-slate-400">
-                  Accepted scientific formats: <strong>.csv</strong>, <strong>.tsv</strong>, <strong>.txt</strong>, <strong>.gct (1.2/1.3)</strong> (up to 25 MB)
+                  Accepted scientific formats: <strong>.csv</strong>, <strong>.tsv</strong>, <strong>.txt</strong>, <strong>.gct (1.2/1.3)</strong> (up to 200 MiB)
                 </p>
               </div>
 

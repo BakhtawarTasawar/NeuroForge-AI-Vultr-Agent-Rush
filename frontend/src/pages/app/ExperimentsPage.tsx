@@ -94,14 +94,12 @@ export const ExperimentsPage: React.FC = () => {
         apiClient.get<Dataset[]>('/datasets'),
       ]);
       setExperiments(expRes.data);
-      const accessibleProjects = projRes.data.filter(
-        (p) => user?.role === 'ADMIN' || p.owner_id === user?.id
-      );
-      setProjects(accessibleProjects.length > 0 ? accessibleProjects : projRes.data);
+      // Backend now enforces tenant isolation — use the response directly.
+      const accessibleProjects = projRes.data;
+      setProjects(accessibleProjects);
       setDatasets(dataRes.data);
-      const targetProjects = accessibleProjects.length > 0 ? accessibleProjects : projRes.data;
-      if (targetProjects.length > 0) {
-        setSelectedProjectId(targetProjects[0].id);
+      if (accessibleProjects.length > 0) {
+        setSelectedProjectId(accessibleProjects[0].id);
       }
       if (dataRes.data.length > 0) {
         handleDatasetSelect(dataRes.data[0].id, dataRes.data);
@@ -604,11 +602,15 @@ export const ExperimentsPage: React.FC = () => {
                 className="w-full rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2 text-xs text-slate-100 focus:ring-cyan-500"
                 required
               >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
+                {projects.length === 0 ? (
+                  <option value="">No projects available — please create one first</option>
+                ) : (
+                  projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
