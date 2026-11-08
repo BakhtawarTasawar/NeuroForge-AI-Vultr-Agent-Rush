@@ -26,6 +26,27 @@ services:
     # CRITICAL SECURITY: No public port mapping. Accessible ONLY within neuroforge-internal bridge.
 
   # =============================================================================
+  # 1b. Qdrant Persistent Vector Database (Private, Zero Public Ports)
+  # =============================================================================
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    container_name: neuroforge-qdrant-prod
+    restart: unless-stopped
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    volumes:
+      - neuroforge_qdrant_prod:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/readyz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - neuroforge-internal
+    # CRITICAL SECURITY: No public port mapping. Accessible ONLY within neuroforge-internal bridge.
+
+  # =============================================================================
   # 2. FastAPI Control Plane Backend
   # =============================================================================
   backend:
@@ -56,6 +77,9 @@ services:
       SANDBOX_MAX_TIMEOUT_SECONDS: 120
       SANDBOX_MEMORY_LIMIT: 1024m
       SANDBOX_CPU_LIMIT: "1.0"
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_COLLECTION: scientific_knowledge
     # Docker socket: required for sandbox container orchestration.
     # DOCKER_GID must be set to the host docker group GID (see deployment runbook).
     # This allows appuser (non-root) to call Docker without running as root.
@@ -71,6 +95,8 @@ services:
     cpus: 1.0
     depends_on:
       postgres:
+        condition: service_healthy
+      qdrant:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8020/health || exit 1"]
@@ -110,6 +136,8 @@ networks:
 volumes:
   neuroforge_pgdata_prod:
     name: neuroforge_pgdata_prod
+  neuroforge_qdrant_prod:
+    name: neuroforge_qdrant_prod
   neuroforge_uploads_prod:
     name: neuroforge_uploads_prod
   neuroforge_artifacts_prod:

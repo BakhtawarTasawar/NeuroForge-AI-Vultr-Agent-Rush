@@ -70,6 +70,23 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "data/uploads"
     ARTIFACT_DIR: str = "data/artifacts"
     WORKSPACE_DIR: str = "data/workspaces"
+    KNOWLEDGE_DIR: str = "data/knowledge"
+    VECTOR_DB_PATH: str = "data/vector_store.db"
+
+    # Scientific Knowledge & Vector RAG (Qdrant + Vultr)
+    QDRANT_HOST: str = "127.0.0.1"
+    QDRANT_PORT: int = 6333
+    QDRANT_GRPC_PORT: int = 6334
+    QDRANT_URL: str | None = None
+    QDRANT_API_KEY: str | None = None
+    QDRANT_COLLECTION: str = "scientific_knowledge"
+    QDRANT_PREFER_GRPC: bool = False
+    ALLOW_MOCK_EMBEDDINGS: bool = False
+
+    VULTR_EMBEDDING_MODEL: str = "qwen3-embedding-4b"
+    EMBEDDING_DIMENSION: int = 2560
+    RAG_TOP_K: int = 5
+    RAG_SIMILARITY_THRESHOLD: float = 0.05
 
     # Vultr Serverless Inference
     VULTR_INFERENCE_API_KEY: str | None = None
@@ -109,6 +126,9 @@ class Settings(BaseSettings):
 
         if not self.VULTR_INFERENCE_MODEL:
             self.VULTR_INFERENCE_MODEL = "llama-3.3-70b-instruct-fp8"
+
+        if self.current_env == "test":
+            self.ALLOW_MOCK_EMBEDDINGS = True
 
         return self
 

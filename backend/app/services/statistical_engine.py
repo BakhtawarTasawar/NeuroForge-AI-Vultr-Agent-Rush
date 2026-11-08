@@ -595,7 +595,7 @@ def generate_sandbox_script(
     """
     # Serialize arguments safely
     group_map_json = json.dumps(group_mappings)
-    
+
     script = f'''import json
 import math
 import sys
@@ -650,13 +650,13 @@ constant_count = 0
 for feat_id, row in df.iterrows():
     va = row[group_a_cols].to_numpy(dtype=float)
     vb = row[group_b_cols].to_numpy(dtype=float)
-    
+
     va_clean = va[~np.isnan(va) & ~np.isinf(va)]
     vb_clean = vb[~np.isnan(vb) & ~np.isinf(vb)]
-    
+
     na = len(va_clean)
     nb = len(vb_clean)
-    
+
     if na < 2 or nb < 2:
         records.append({{
             "feature_id": str(feat_id),
@@ -675,19 +675,19 @@ for feat_id, row in df.iterrows():
             "status": "insufficient_observations",
         }})
         continue
-        
+
     ma = float(np.mean(va_clean))
     mb = float(np.mean(vb_clean))
     mdiff = mb - ma
-    
+
     va_var = float(np.var(va_clean, ddof=1))
     vb_var = float(np.var(vb_clean, ddof=1))
-    
+
     se_sq = (va_var / na) + (vb_var / nb)
-    
+
     # Log2 FC
     log2_fc = round(mdiff, 4) if IS_LOG2 else (round(math.log2(mb / ma), 4) if (ma > 0 and mb > 0) else None)
-    
+
     # Zero variance across both groups
     if se_sq <= 1e-15 or (va_var <= 1e-15 and vb_var <= 1e-15):
         constant_count += 1
@@ -708,23 +708,23 @@ for feat_id, row in df.iterrows():
             "status": "constant_feature",
         }})
         continue
-        
+
     se = math.sqrt(se_sq)
     t = mdiff / se
-    
+
     term_a = ((va_var / na)**2 / (na - 1)) if (va_var > 1e-15 and na > 1) else 0.0
     term_b = ((vb_var / nb)**2 / (nb - 1)) if (vb_var > 1e-15 and nb > 1) else 0.0
     denom = term_a + term_b
     df_val = (se_sq**2) / denom if denom > 0 else float(na + nb - 2)
-    
+
     p = float(stats.t.sf(abs(t), df_val) * 2.0)
     p = min(1.0, max(0.0, p))
-    
+
     # 95% CI
     t_crit = float(stats.t.ppf(1.0 - ALPHA / 2.0, df_val))
     ci_low = mdiff - t_crit * se
     ci_high = mdiff + t_crit * se
-    
+
     # Hedges' g
     df_pooled = na + nb - 2
     pooled_var = ((na - 1)*va_var + (nb - 1)*vb_var) / df_pooled if df_pooled > 0 else 0.0
@@ -735,7 +735,7 @@ for feat_id, row in df.iterrows():
         hedges_g = d * j_factor
     else:
         hedges_g = None
-    
+
     features.append(str(feat_id))
     p_vals.append(p)
     records.append({{
@@ -768,7 +768,7 @@ if m > 0:
     for i in range(m - 2, -1, -1):
         if q_vals[i] > q_vals[i + 1]:
             q_vals[i] = q_vals[i + 1]
-    
+
     final_q = np.zeros(m)
     final_q[order] = q_vals
     for i, r in enumerate(valid_computed):
@@ -832,10 +832,10 @@ if len(results_df) > 0 and "log2_fc" in results_df and results_df["log2_fc"].not
     valid_plot = results_df[results_df["log2_fc"].notna() & results_df["adj_p_value"].notna()].copy()
     if len(valid_plot) > 0:
         valid_plot["neg_log10_q"] = -np.log10(np.maximum(valid_plot["adj_p_value"], 1e-300))
-        
+
         plt.figure(figsize=(8, 6))
         sig_mask = valid_plot["adj_p_value"] <= FDR_THRESHOLD
-        
+
         plt.scatter(
             valid_plot.loc[~sig_mask, "log2_fc"],
             valid_plot.loc[~sig_mask, "neg_log10_q"],
@@ -846,11 +846,11 @@ if len(results_df) > 0 and "log2_fc" in results_df and results_df["log2_fc"].not
             valid_plot.loc[sig_mask, "neg_log10_q"],
             c="#06b6d4", alpha=0.85, s=35, edgecolors="#0891b2", label=f"Significant (FDR <= {{FDR_THRESHOLD}}, N={{sum(sig_mask)}})"
         )
-        
+
         plt.axhline(-math.log10(FDR_THRESHOLD), color="#f43f5e", linestyle="--", linewidth=1.2, label=f"FDR = {{FDR_THRESHOLD}} threshold")
         plt.axvline(1.0, color="#94a3b8", linestyle=":", linewidth=1)
         plt.axvline(-1.0, color="#94a3b8", linestyle=":", linewidth=1)
-        
+
         plt.xlabel(f"Log2 Fold Change ({{GROUP_B}} vs {{GROUP_A}})")
         plt.ylabel("-Log10 Adjusted P-Value (FDR)")
         plt.title(f"Volcano Plot: {{GROUP_B}} vs {{GROUP_A}}")
@@ -866,7 +866,7 @@ try:
     sample_df = df[group_a_cols + group_b_cols].T
     imputer = SimpleImputer(strategy="median")
     imputed = imputer.fit_transform(sample_df.values)
-    
+
     feat_stds = np.std(imputed, axis=0, ddof=0)
     zero_mask = feat_stds <= 1e-12
     feat_means = np.mean(imputed, axis=0)
@@ -874,20 +874,20 @@ try:
     for j in range(imputed.shape[1]):
         if not zero_mask[j]:
             scaled[:, j] = (imputed[:, j] - feat_means[j]) / feat_stds[j]
-    
+
     n_comp = min(2, len(sample_df), len(sample_df.columns))
     if n_comp >= 1:
         pca = PCA(n_components=n_comp)
         coords = pca.fit_transform(scaled)
-        
+
         plt.figure(figsize=(7, 5))
         for grp_label, col_list, color in [(GROUP_A, group_a_cols, "#3b82f6"), (GROUP_B, group_b_cols, "#a855f7")]:
             idxs = [sample_df.index.get_loc(c) for c in col_list]
             plt.scatter(coords[idxs, 0], coords[idxs, 1], c=color, label=f"{{grp_label}} (N={{len(col_list)}})", s=50, edgecolors="white", alpha=0.9)
-            
+
         var1 = round(float(pca.explained_variance_ratio_[0]) * 100, 1)
         var2 = round(float(pca.explained_variance_ratio_[1]) * 100, 1) if n_comp > 1 else 0.0
-        
+
         plt.xlabel(f"PC1 ({{var1}}% variance)")
         plt.ylabel(f"PC2 ({{var2}}% variance)")
         plt.title("Principal Component Analysis (Sample Projection)")
@@ -900,7 +900,56 @@ try:
 except Exception as e:
     print(f"PCA generation notice: {{e}}")
 
+# 8. Render genuine Clustered/Grouped Heatmap from real differential expression numerical matrix
+try:
+    if len(sig_df) > 0 and (len(group_a_cols) > 0 or len(group_b_cols) > 0):
+        # Select top significant features (up to 30)
+        top_sig_feats = sig_df["feature_id"].head(30).tolist()
+        sample_cols = group_a_cols + group_b_cols
+
+        # Extract genuine raw matrix subset from df (where df.index contains feature IDs)
+        valid_feats = [f for f in top_sig_feats if f in df.index]
+        if valid_feats and len(sample_cols) >= 2:
+            sub_matrix = df.loc[valid_feats, sample_cols].copy()
+            mat_vals = sub_matrix.values.astype(float)
+
+            # Row-wise Z-score standardisation: (x - mu) / sigma
+            row_means = np.nanmean(mat_vals, axis=1, keepdims=True)
+            row_stds = np.nanstd(mat_vals, axis=1, keepdims=True)
+            row_stds[row_stds <= 1e-12] = 1.0  # Avoid division by zero
+            z_scores = np.nan_to_num((mat_vals - row_means) / row_stds, nan=0.0)
+
+            fig_h = max(5.0, len(top_sig_feats) * 0.28)
+            fig_w = max(7.0, len(sample_cols) * 0.35 + 3.0)
+            fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+
+            im = ax.imshow(z_scores, aspect="auto", cmap="RdBu_r", vmin=-2.5, vmax=2.5)
+            cbar = plt.colorbar(im, ax=ax, fraction=0.03, pad=0.04)
+            cbar.set_label("Expression Z-Score", rotation=270, labelpad=14, fontsize=9)
+
+            # Label axes
+            ax.set_xticks(range(len(sample_cols)))
+            ax.set_xticklabels(sample_cols, rotation=90, fontsize=8)
+            ax.set_yticks(range(len(sub_matrix.index)))
+            ax.set_yticklabels(sub_matrix.index, fontsize=8)
+
+            # Color code sample column ticks by group
+            for idx, col_name in enumerate(sample_cols):
+                color = "#3b82f6" if col_name in group_a_cols else "#a855f7"
+                ax.get_xticklabels()[idx].set_color(color)
+
+            ax.set_title(
+                f"Expression Heatmap: Top {{len(sub_matrix.index)}} Significant Features\\n"
+                f"({{GROUP_A}} [blue] vs {{GROUP_B}} [purple])",
+                fontsize=10, pad=12
+            )
+            plt.tight_layout()
+            plt.savefig("/workspace/heatmap_plot.png", dpi=180)
+            plt.close()
+            print("Rendered genuine heatmap_plot.png")
+except Exception as e:
+    print(f"Heatmap generation notice: {{e}}")
+
 print("Scientific computation completed successfully.")
 '''
     return script
-

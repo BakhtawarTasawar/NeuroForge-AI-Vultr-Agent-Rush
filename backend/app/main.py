@@ -10,16 +10,14 @@ from typing import Optional
 from sqlalchemy import text
 from app.db.database import Base, engine
 from app.db.migrations import run_migrations
-from app.api.routers import auth, users, projects, datasets, experiments, overview, agent_research
+from app.api.routers import auth, users, projects, datasets, experiments, overview, agent_research, knowledge
 
 logger = logging.getLogger("neuroforge")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure SQLite database tables are created on startup
-    Base.metadata.create_all(bind=engine)
-    # Apply schema migrations safely
+    # Apply schema creation and migrations safely under PostgreSQL advisory lock serialization
     run_migrations()
     yield
 
@@ -60,6 +58,7 @@ app.include_router(datasets.router)
 app.include_router(experiments.router)
 app.include_router(overview.router)
 app.include_router(agent_research.router)
+app.include_router(knowledge.router)
 
 
 class HealthResponse(BaseModel):

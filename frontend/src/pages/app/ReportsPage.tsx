@@ -293,6 +293,35 @@ export const ReportsPage: React.FC = () => {
               </div>
             )}
 
+            {/* Peer-Reviewed Literature Evidence (RAG) */}
+            {selectedReport.summary?.retrieved_literature_synthesis && (
+              <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-800/40 space-y-2">
+                <span className="text-[11px] font-semibold text-cyan-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+                  Peer-Reviewed Literature Synthesis (RAG)
+                </span>
+                <p className="text-slate-200 leading-relaxed text-xs">
+                  {selectedReport.summary.retrieved_literature_synthesis}
+                </p>
+                {selectedReport.summary.literature_citations &&
+                  selectedReport.summary.literature_citations.length > 0 && (
+                    <div className="pt-2 border-t border-cyan-900/40">
+                      <span className="text-[10px] text-slate-400 block mb-1">
+                        Literature Citations:
+                      </span>
+                      <ul className="space-y-0.5 text-[11px] text-cyan-300">
+                        {selectedReport.summary.literature_citations.map((c: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-1.5">
+                            <span className="text-cyan-500 font-bold">•</span>
+                            <span>{c}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </div>
+            )}
+
             {/* Limitations & Caveats */}
             {selectedReport.summary?.scientific_caveats && (
               <div className="p-3 rounded-lg bg-amber-950/20 border border-amber-800/40 space-y-1">

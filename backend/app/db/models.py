@@ -65,6 +65,7 @@ class User(Base):
     datasets = relationship("Dataset", back_populates="owner", cascade="all, delete-orphan")
     experiments = relationship("Experiment", back_populates="owner", cascade="all, delete-orphan")
     research_sessions = relationship("ResearchSession", back_populates="owner", cascade="all, delete-orphan", foreign_keys="ResearchSession.owner_id")
+    knowledge_documents = relationship("KnowledgeDocument", back_populates="owner", cascade="all, delete-orphan")
 
 
 class RefreshSession(Base):
@@ -99,6 +100,7 @@ class Project(Base):
     datasets = relationship("Dataset", back_populates="project", cascade="all, delete-orphan")
     experiments = relationship("Experiment", back_populates="project", cascade="all, delete-orphan")
     research_sessions = relationship("ResearchSession", back_populates="project", cascade="all, delete-orphan")
+    knowledge_documents = relationship("KnowledgeDocument", back_populates="project", cascade="all, delete-orphan")
 
 
 class Dataset(Base):
@@ -232,3 +234,47 @@ class ResearchEvent(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 
     session = relationship("ResearchSession", back_populates="events")
+
+
+class KnowledgeDocument(Base):
+    __tablename__ = "knowledge_documents"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    filename = Column(String(255), nullable=False)
+    file_format = Column(String(32), nullable=False, default="TXT")
+    file_size_bytes = Column(Integer, nullable=False, default=0)
+    content_hash = Column(String(64), nullable=True)
+    chunk_count = Column(Integer, nullable=False, default=0)
+    source_type = Column(String(64), nullable=False, default="upload")  # "upload", "abstract", "pathway", "annotation"
+    doi = Column(String(128), nullable=True)
+    authors = Column(Text, nullable=True)  # Comma-separated or JSON list of authors
+    publication_year = Column(Integer, nullable=True)
+    journal = Column(String(255), nullable=True)
+    source_url = Column(String(512), nullable=True)
+    tags = Column(Text, nullable=True)  # Comma-separated or JSON list of tags
+    custom_metadata = Column(Text, nullable=True)  # JSON-serialized dictionary of arbitrary key-value metadata
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+
+    owner = relationship("User", back_populates="knowledge_documents")
+    project = relationship("Project", back_populates="knowledge_documents")
+    chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan", order_by="DocumentChunk.chunk_index.asc()")
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    document_id = Column(String(36), ForeignKey("knowledge_documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    chunk_index = Column(Integer, nullable=False)
+    chunk_text = Column(Text, nullable=False)
+    token_count = Column(Integer, nullable=False, default=0)
+    embedding_json = Column(Text, nullable=True)  # JSON-serialized vector embedding for database-agnostic portability
+    metadata_json = Column(Text, nullable=True)   # JSON-serialized chunk metadata (section, page, source)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+    document = relationship("KnowledgeDocument", back_populates="chunks")

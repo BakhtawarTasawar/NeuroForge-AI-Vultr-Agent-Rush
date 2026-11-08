@@ -135,6 +135,7 @@ class DifferentialExpressionOutput(BaseModel):
     top_significant_features: List[Dict[str, Any]]
     volcano_plot_url: Optional[str] = None
     pca_plot_url: Optional[str] = None
+    heatmap_plot_url: Optional[str] = None
     evidence: ToolEvidence
 
 
@@ -489,11 +490,14 @@ class ScientificToolRegistry:
 
         volcano_url = None
         pca_url = None
+        heatmap_url = None
         for art in exec_result.artifacts:
             if art.get("filename") == "volcano_plot.png":
                 volcano_url = art.get("download_url")
             elif art.get("filename") == "pca_plot.png":
                 pca_url = art.get("download_url")
+            elif art.get("filename") == "heatmap_plot.png":
+                heatmap_url = art.get("download_url")
 
         sig_count = int(stats_data.get("significant_features_count", 0))
         up_count = int(stats_data.get("upregulated_count", 0))
@@ -531,6 +535,7 @@ class ScientificToolRegistry:
             top_significant_features=top_features[:20],
             volcano_plot_url=volcano_url,
             pca_plot_url=pca_url,
+            heatmap_plot_url=heatmap_url,
             evidence=evidence,
         )
 

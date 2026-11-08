@@ -12,6 +12,7 @@ import { RegisterPage } from './pages/public/RegisterPage';
 import { OverviewPage } from './pages/app/OverviewPage';
 import { ProjectsPage } from './pages/app/ProjectsPage';
 import { DatasetsPage } from './pages/app/DatasetsPage';
+import { KnowledgePage } from './pages/app/KnowledgePage';
 import { ExperimentsPage } from './pages/app/ExperimentsPage';
 import { FindingsPage } from './pages/app/FindingsPage';
 import { ReportsPage } from './pages/app/ReportsPage';
@@ -59,6 +60,7 @@ export default function App() {
           <Route index element={<OverviewPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="datasets" element={<DatasetsPage />} />
+          <Route path="knowledge" element={<KnowledgePage />} />
           <Route path="agent" element={<ResearchWorkspacePage />} />
           <Route path="experiments" element={<ExperimentsPage />} />
           <Route path="findings" element={<FindingsPage />} />

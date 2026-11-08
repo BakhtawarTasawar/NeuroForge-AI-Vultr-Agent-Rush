@@ -1012,6 +1012,27 @@ export const ExperimentsPage: React.FC = () => {
                         </div>
                       )}
                     </div>
+
+                    {/* Expression Heatmap */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4 space-y-3 md:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">Expression Heatmap (Top Significant Features)</span>
+                        <span className="text-[11px] font-mono text-slate-400">Row Z-Scores (Blue: Group A, Purple: Group B)</span>
+                      </div>
+                      {selectedExp.artifacts?.find((a) => a.filename === 'heatmap_plot.png') ? (
+                        <div className="rounded-lg border border-slate-800 overflow-hidden bg-slate-900 flex items-center justify-center p-2">
+                          <img
+                            src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8020'}${selectedExp.artifacts.find((a) => a.filename === 'heatmap_plot.png')?.download_url}`}
+                            alt="Expression Heatmap"
+                            className="max-h-96 object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-48 flex items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-lg">
+                          Heatmap plot artifact not generated.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

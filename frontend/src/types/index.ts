@@ -314,4 +314,58 @@ export interface ExperimentComparison {
   exp2_unique_features: Record<string, any>[];
 }
 
+// =============================================================================
+// Scientific Knowledge & Vector RAG Types
+// =============================================================================
 
+export interface DocumentChunk {
+  id: string;
+  document_id: string;
+  project_id: string;
+  chunk_index: number;
+  chunk_text: string;
+  token_count: number;
+  metadata_json?: string | null;
+  created_at: string;
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  project_id: string;
+  owner_id: string;
+  title: string;
+  filename: string;
+  file_format: string;
+  file_size_bytes: number;
+  content_hash?: string | null;
+  chunk_count: number;
+  source_type: string;
+  doi?: string | null;
+  authors?: string | null;
+  publication_year?: number | null;
+  journal?: string | null;
+  source_url?: string | null;
+  tags?: string | null;
+  custom_metadata?: string | null;
+  created_at: string;
+  updated_at: string;
+  chunks?: DocumentChunk[] | null;
+}
+
+export interface KnowledgeCitation {
+  chunk_id: string;
+  document_id: string;
+  document_title: string;
+  source_filename: string;
+  chunk_index: number;
+  relevance_score: number;
+  chunk_text: string;
+  metadata?: Record<string, any> | null;
+}
+
+export interface KnowledgeSearchResponse {
+  query: string;
+  project_id: string;
+  total_results: number;
+  citations: KnowledgeCitation[];
+}

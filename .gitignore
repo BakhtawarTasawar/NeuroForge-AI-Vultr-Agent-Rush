@@ -63,3 +63,6 @@ experiments/runs/
 Thumbs.db
 run_browser_qa.py
 neuroforge.backup.20261104_133816
+
+# Local emergency backups
+/backend/emergency_backup/

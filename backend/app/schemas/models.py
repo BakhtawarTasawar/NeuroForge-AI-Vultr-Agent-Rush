@@ -431,3 +431,80 @@ class ExperimentComparisonResponse(BaseModel):
     exp2_unique_features: List[Dict[str, Any]] = []
 
 
+# =============================================================================
+# Scientific Knowledge & Vector RAG Schemas
+# =============================================================================
+
+class DocumentChunkResponse(BaseModel):
+    id: str
+    document_id: str
+    project_id: str
+    chunk_index: int
+    chunk_text: str
+    token_count: int
+    metadata_json: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class KnowledgeDocumentResponse(BaseModel):
+    id: str
+    project_id: str
+    owner_id: str
+    title: str
+    filename: str
+    file_format: str
+    file_size_bytes: int
+    content_hash: Optional[str] = None
+    chunk_count: int
+    source_type: str
+    doi: Optional[str] = None
+    authors: Optional[str] = None
+    publication_year: Optional[int] = None
+    journal: Optional[str] = None
+    source_url: Optional[str] = None
+    tags: Optional[str] = None
+    custom_metadata: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    chunks: Optional[List[DocumentChunkResponse]] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class KnowledgeDocumentCreateTextRequest(BaseModel):
+    title: str = Field(..., min_length=2, max_length=255)
+    content: str = Field(..., min_length=10)
+    source_type: Optional[str] = Field("abstract", max_length=64)
+    doi: Optional[str] = Field(None, max_length=128)
+    authors: Optional[str] = None
+    publication_year: Optional[int] = Field(None, ge=1800, le=2100)
+    journal: Optional[str] = Field(None, max_length=255)
+    source_url: Optional[str] = Field(None, max_length=512)
+    tags: Optional[str] = None
+    custom_metadata: Optional[Dict[str, Any]] = None
+
+
+class KnowledgeSearchRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=1000)
+    top_k: Optional[int] = Field(5, ge=1, le=20)
+    score_threshold: Optional[float] = Field(0.0, ge=0.0, le=1.0)
+
+
+class KnowledgeCitation(BaseModel):
+    chunk_id: str
+    document_id: str
+    document_title: str
+    source_filename: str
+    chunk_index: int
+    relevance_score: float
+    chunk_text: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class KnowledgeSearchResponse(BaseModel):
+    query: str
+    project_id: str
+    total_results: int
+    citations: List[KnowledgeCitation]

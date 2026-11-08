@@ -15,6 +15,7 @@ import {
   Check,
   X,
   FolderGit2,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient, formatErrorMessage } from '../../services/api';
@@ -775,6 +776,85 @@ export const ResearchWorkspacePage: React.FC = () => {
                         </ul>
                       </div>
 
+                      {/* Retrieved Literature Evidence (RAG) */}
+                      {activeSession.research_plan.literature_citations &&
+                        Array.isArray(activeSession.research_plan.literature_citations) &&
+                        activeSession.research_plan.literature_citations.length > 0 && (
+                          <div className="p-4 rounded-xl bg-slate-950/90 border border-cyan-900/40 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-semibold font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                                <BookOpen className="w-4 h-4 text-cyan-400 shrink-0" />
+                                Retrieved Peer-Reviewed Literature Grounding (RAG)
+                              </h4>
+                              <Badge variant="cyan" size="sm">
+                                Qdrant Vector Context
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-slate-400">
+                              The agent retrieved the following project literature citations to guide experimental design and biological rationale.
+                            </p>
+                            <div className="space-y-2">
+                              {activeSession.research_plan.literature_citations.map(
+                                (cit: any, cIdx: number) => {
+                                  const title = cit.document_title || (typeof cit === 'string' ? cit : 'Document');
+                                  const filename = cit.source_filename || '';
+                                  const excerpt = cit.chunk_text || '';
+                                  const score = typeof cit.relevance_score === 'number' ? cit.relevance_score : null;
+                                  const meta = cit.metadata || {};
+
+                                  return (
+                                    <div
+                                      key={cIdx}
+                                      className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-xs space-y-1.5"
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                          <span className="font-semibold text-slate-200">
+                                            {title}
+                                          </span>
+                                          {filename && (
+                                            <span className="text-[10px] font-mono text-slate-500 block">
+                                              File: {filename}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {score !== null && (
+                                          <Badge variant="slate" size="sm">
+                                            Similarity: {(score * 100).toFixed(1)}%
+                                          </Badge>
+                                        )}
+                                      </div>
+
+                                      {excerpt && (
+                                        <p className="text-slate-300 text-[11px] leading-relaxed bg-slate-950/60 p-2 rounded border border-slate-800/80 italic">
+                                          "{excerpt}"
+                                        </p>
+                                      )}
+
+                                      <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400 pt-0.5">
+                                        {meta.doi && (
+                                          <span className="font-mono text-cyan-400">
+                                            DOI: {meta.doi}
+                                          </span>
+                                        )}
+                                        {meta.authors && (
+                                          <span>• {meta.authors}</span>
+                                        )}
+                                        {meta.publication_year && (
+                                          <span>({meta.publication_year})</span>
+                                        )}
+                                        {meta.journal && (
+                                          <span className="italic">• {meta.journal}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                       {/* Proposed Experiments */}
                       <div>
                         <h4 className="text-xs font-semibold font-mono uppercase tracking-wider text-emerald-400 mb-2">
@@ -975,6 +1055,43 @@ export const ResearchWorkspacePage: React.FC = () => {
                           {activeSession.final_summary.methodology}
                         </p>
                       </div>
+
+                      {/* Literature Synthesis (RAG) - Visually Separated */}
+                      {activeSession.final_summary.retrieved_literature_synthesis && (
+                        <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-800/50 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-mono font-semibold uppercase text-cyan-400 flex items-center gap-1.5">
+                              <BookOpen className="w-4 h-4 text-cyan-400" />
+                              Peer-Reviewed Literature Synthesis (RAG)
+                            </h4>
+                            <Badge variant="cyan" size="sm">
+                              External Domain Knowledge
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-200 leading-relaxed">
+                            {activeSession.final_summary.retrieved_literature_synthesis}
+                          </p>
+
+                          {activeSession.final_summary.literature_citations &&
+                            activeSession.final_summary.literature_citations.length > 0 && (
+                              <div className="pt-2 border-t border-cyan-900/40">
+                                <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1">
+                                  Cited Literature References:
+                                </span>
+                                <ul className="space-y-1">
+                                  {activeSession.final_summary.literature_citations.map(
+                                    (cite: string, cIdx: number) => (
+                                      <li key={cIdx} className="text-[11px] text-cyan-300 flex items-center gap-1.5">
+                                        <span className="text-cyan-500 font-bold">•</span>
+                                        <span>{cite}</span>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+                        </div>
+                      )}
 
                       {/* Key Findings Table */}
                       {activeSession.final_summary.key_findings &&

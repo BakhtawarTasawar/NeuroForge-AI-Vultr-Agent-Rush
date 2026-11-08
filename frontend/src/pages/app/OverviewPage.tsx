@@ -197,9 +197,9 @@ export const OverviewPage: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs text-slate-300">
           <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-1">
-            <span className="font-semibold text-white block">Blast Radius Zero Sandbox</span>
+            <span className="font-semibold text-white block">Restricted Docker Execution</span>
             <p className="text-slate-400 text-[11px]">
-              Docker execution container isolated with read-only filesystems and timeout policies.
+              Experiments run in restricted containers with network access disabled, a read-only root filesystem, and configured resource limits.
             </p>
           </div>
           <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 space-y-1">

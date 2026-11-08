@@ -20,6 +20,23 @@ services:
       timeout: 5s
       retries: 5
 
+  # =============================================================================
+  # Qdrant Persistent Vector Database (Scientific Knowledge & Semantic RAG)
+  # =============================================================================
+  neuroforge-qdrant:
+    image: qdrant/qdrant:v1.13.4
+    container_name: neuroforge-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - neuroforge_qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
 volumes:
   neuroforge_postgres_data:
     name: neuroforge_postgres_data
+  neuroforge_qdrant_data:
+    name: neuroforge_qdrant_data

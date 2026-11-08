@@ -107,7 +107,7 @@ class SandboxExecutionService:
         - Read-only root filesystem (--read-only)
         - Dropped Linux capabilities (--cap-drop ALL)
         - No new privileges (--security-opt no-new-privileges)
-        - Strict memory (512m), CPU (1.0), and pids limit (64)
+        - Configured memory limit, CPU limit, and pids limit
         - Ephemeral workspace cleanup
         """
         if not check_docker_available():
@@ -290,7 +290,7 @@ class SandboxExecutionService:
             failure_reason = f"Experiment exceeded maximum execution time boundary of {timeout} seconds."
         elif exit_code == 137:
             status = ExperimentStatus.FAILED
-            failure_reason = "Experiment exceeded the 512 MB memory boundary and was terminated."
+            failure_reason = "Experiment exceeded the configured memory limit and was terminated."
         elif exit_code == 0:
             status = ExperimentStatus.COMPLETED
             # Check for a structured output file or summary in stdout

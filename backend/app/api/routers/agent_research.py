@@ -160,6 +160,8 @@ def create_and_start_research_session(
         "evidence_store": [],
         "tool_history": [],
         "experiment_ids": [],
+        "domain": project.domain or "Cancer Gene-Expression",
+        "literature_evidence": [],
     }
 
     # Execute LangGraph until approval pause gate or completion

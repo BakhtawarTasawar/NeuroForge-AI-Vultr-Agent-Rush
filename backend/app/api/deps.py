@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Generator, Optional, List
+import secrets
 from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
@@ -66,18 +67,33 @@ def require_roles(allowed_roles: List[UserRole]):
 
 
 def verify_csrf(request: Request) -> None:
-    """Validate CSRF token on state-changing requests when using cookies."""
-    if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
-        # If client is using cookie-based auth
-        if "nf_access_token" in request.cookies:
-            csrf_cookie = request.cookies.get("nf_csrf_token")
-            csrf_header = request.headers.get("X-CSRF-Token")
-            if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Security verification token mismatch. Please refresh and try again.",
-                )
+    """
+    Validate CSRF tokens on state-changing cookie-authenticated requests.
+    Applies to both access-token and refresh-token sessions.
+    """
+    if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
+        return
 
+    uses_cookie_auth = (
+        "nf_access_token" in request.cookies
+        or "nf_refresh_token" in request.cookies
+    )
+
+    if not uses_cookie_auth:
+        return
+
+    csrf_cookie = request.cookies.get("nf_csrf_token")
+    csrf_header = request.headers.get("X-CSRF-Token")
+
+    if (
+        not csrf_cookie
+        or not csrf_header
+        or not secrets.compare_digest(csrf_cookie, csrf_header)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Security verification failed. Please refresh and try again.",
+        )
 
 def set_auth_cookies(
     response: Response,
