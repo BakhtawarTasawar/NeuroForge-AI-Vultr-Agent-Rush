@@ -1,186 +1,125 @@
-# NeuroForge AI
+# 🧬 NeuroForge AI
 ### Autonomous Scientific Discovery & Experimentation Platform
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688.svg)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Frontend-3178C6.svg)](https://www.typescriptlang.org/)
-[![Docker](https://img.shields.io/badge/Docker-Sandbox-2496ED.svg)](https://www.docker.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1.svg)](https://www.postgresql.org/)
-[![LangGraph](https://img.shields.io/badge/LangGraph-Agent_Workflow-1C3C3C.svg)](https://www.langchain.com/langgraph)
+**Transforming scientific datasets into structured, evidence-driven research insights through AI-assisted experimentation.**
 
-**Live Application:** https://neuroforgeai.duckdns.org/
-**API Documentation:** https://neuroforgeai.duckdns.org/docs
-**Health Check:** https://neuroforgeai.duckdns.org/health
-**Source Code:** https://github.com/EshemWaseem/NeuroForge-AI
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue?logo=python" />
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi" />
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" />
+  <img src="https://img.shields.io/badge/TypeScript-Frontend-3178C6?logo=typescript" />
+  <img src="https://img.shields.io/badge/Docker-Sandbox-2496ED?logo=docker" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?logo=postgresql" />
+  <img src="https://img.shields.io/badge/LangGraph-Agent_Workflow-1C3C3C" />
+</p>
+
+<p align="center">
+  <a href="https://neuroforgeai.duckdns.org/">Live Application</a> •
+  <a href="https://neuroforgeai.duckdns.org/docs">API Documentation</a> •
+  <a href="https://github.com/BakhtawarTasawar/NeuroForge-AI-Vultr-Agent-Rush">Personal Repository</a>
+</p>
 
 ---
 
-## Overview
+## 🔬 Overview
 
-NeuroForge AI is an autonomous scientific discovery platform designed to help researchers move from raw datasets to structured, statistically evaluated research findings.
+NeuroForge AI is an autonomous scientific discovery and experimentation platform designed to assist researchers in transforming raw scientific datasets into structured research insights.
 
-Instead of treating AI as a simple chatbot, NeuroForge AI organizes scientific analysis into a controlled research workflow. It combines dataset inspection, research hypothesis generation, experiment planning, isolated analytical execution, statistical evaluation, and evidence-backed reporting.
+The platform integrates AI-assisted hypothesis generation, experiment planning, human approval, isolated analytical execution, statistical evaluation, and evidence-backed reporting into a unified research workflow.
 
-The platform initially focuses on cancer gene-expression and transcriptomic research datasets.
+Its initial focus is cancer gene-expression and transcriptomic research datasets.
 
-Its central design principle is:
+Rather than functioning as a conventional AI chatbot, NeuroForge AI aims to support a structured scientific workflow in which AI assists with research reasoning while analytical execution remains controlled, reproducible, and reviewable.
 
-> AI should help researchers explore scientific questions, but analytical execution must remain controlled, reproducible, and evidence-driven.
+**Core principle:** AI should accelerate scientific exploration without compromising analytical control, reproducibility, or scientific integrity.
 
-NeuroForge AI is a research-assistance platform. Its outputs are not medical diagnoses, clinical recommendations, or substitutes for expert scientific review.
+## 🎯 The Problem
 
-## The Problem
+Scientific research frequently involves several disconnected and time-consuming activities:
 
-Scientific experimentation often involves repetitive and disconnected steps:
+- Understanding unfamiliar scientific datasets.
+- Identifying missing values and data-quality issues.
+- Developing research hypotheses.
+- Designing appropriate experiments.
+- Executing analytical code safely.
+- Evaluating results using statistical methods.
+- Translating analytical outputs into understandable research reports.
 
-- Inspecting unfamiliar datasets and understanding their structure.
-- Identifying missing values, inconsistent columns, and data-quality issues.
-- Developing research hypotheses from available observations.
-- Designing experiments and selecting appropriate analytical methods.
-- Executing code in a controlled environment.
-- Evaluating results using statistical evidence.
-- Converting experimental outputs into understandable research reports.
+AI can help simplify these processes, but unrestricted code execution and unsupported AI-generated conclusions introduce additional risks.
 
-These steps can require substantial manual effort and technical knowledge.
+NeuroForge AI addresses these challenges through an integrated, human-supervised research workflow.
 
-AI-generated analysis introduces additional risks: unsupported conclusions, uncontrolled code execution, misleading statistical interpretations, and poor reproducibility.
-
-NeuroForge AI addresses these challenges through a structured, tool-assisted research workflow with explicit execution boundaries.
-
-## What NeuroForge AI Does
+## ⚙️ Key Features
 
 ### 1. Dataset Inspection
-
-Researchers can upload scientific datasets for structured inspection.
-
-The platform's dataset-processing services support:
-
-- Dataset parsing and structural inspection.
-- Column and data-type analysis.
+- Scientific dataset parsing and structural analysis.
+- Column and data-type identification.
 - Missing-value assessment.
-- Dataset-quality checks.
-- Preparation of structured information for downstream research workflows.
-
-The initial research focus is cancer gene-expression and transcriptomic datasets.
+- Dataset-quality evaluation.
+- Preparation of structured dataset information.
 
 ### 2. AI-Assisted Hypothesis Generation
+The research agent uses dataset context to identify potential research directions and distinguish between:
 
-The research agent uses dataset context to help identify potential research directions.
-
-It distinguishes between:
-
-- **Observed facts:** Information directly supported by the dataset.
-- **Detected patterns:** Patterns identified through analytical processing.
-- **Research hypotheses:** Questions or explanations that require further investigation.
-
-A hypothesis is not treated as a scientifically established conclusion.
+- Observed facts.
+- Computationally detected patterns.
+- Research hypotheses requiring further investigation.
 
 ### 3. Experiment Planning
+The platform helps organize analytical experiments by identifying relevant variables, potential methods, statistical requirements, and expected outputs.
 
-The research workflow develops an analytical plan based on the research question and available dataset.
-
-The plan can identify:
-
-- Variables relevant to the research question.
-- Potential analytical approaches.
-- Statistical evaluation requirements.
-- Expected experiment outputs.
-
-### 4. Human Approval Before Execution
-
-NeuroForge AI includes a human approval step in its research workflow.
-
-This creates an execution boundary between AI-assisted planning and analytical code execution.
-
-The intention is to prevent an AI-generated plan from automatically becoming unrestricted code execution.
+### 4. Human-in-the-Loop Approval
+Research plans undergo human review before analytical execution, establishing a controlled boundary between AI-generated plans and code execution.
 
 ### 5. Isolated Analytical Execution
+Docker-based sandboxing introduces multiple execution restrictions:
 
-A major engineering focus is restricting the environment in which analytical code runs.
-
-NeuroForge AI uses Docker-based sandbox execution with multiple security controls:
-
-| Control | Configuration |
+| Security Control | Configuration |
 |---|---|
 | Network access | Disabled |
 | Root filesystem | Read-only |
-| Linux capabilities | Dropped |
 | Privilege escalation | Disabled |
+| Linux capabilities | Dropped |
 | Process limit | 64 |
 | Memory limit | 1024 MB |
 | CPU limit | 1 CPU |
-| Temporary filesystem | Restricted `tmpfs` |
 | Container user | Non-root UID 10001 |
 | Container lifecycle | Automatically removed |
-| Workspace | Dedicated mounted workspace |
 
-Additional safeguards include:
-
-- Execution time limits.
-- Restricted workspace access.
-- Artifact collection and validation.
-- Workspace cleanup.
-- Container cleanup after execution.
-
-These controls reduce the impact of untrusted analytical code. They do not guarantee complete isolation from every host-level or infrastructure-level threat.
+Additional safeguards include execution time limits, restricted workspaces, artifact validation, and cleanup.
 
 ### 6. Statistical Evaluation
-
-The platform includes a statistical analysis engine with methods such as:
+The statistical analysis engine includes:
 
 - Welch's t-test.
-- Benjamini-Hochberg false discovery rate correction.
+- Benjamini-Hochberg correction.
 - Hedges' g effect size.
 - Principal Component Analysis (PCA).
 
-These methods help assess differences, statistical significance, effect sizes, and dataset structure.
+### 7. Research Findings and Reporting
+Experiment outputs are organized into structured findings, including research hypotheses, experiment configurations, statistical results, supporting evidence, and generated artifacts.
 
-The appropriate statistical method depends on the dataset, research design, and assumptions. Statistical significance alone does not establish biological or clinical importance.
+## 🏗️ System Architecture
 
-### 7. Findings and Research Reports
-
-The platform organizes experiment outputs into research findings and reports.
-
-This provides a structured way to review:
-
-- Research questions and hypotheses.
-- Experiment configuration.
-- Analytical outputs.
-- Statistical results.
-- Supporting evidence.
-- Generated artifacts.
-
-The goal is to make the research process easier to inspect and review rather than presenting an unexplained AI-generated answer.
-
----
-
-## System Architecture
-
-NeuroForge AI follows a frontend/backend architecture with a separate database and isolated execution environment.
+NeuroForge AI uses a modular frontend/backend architecture integrated with an AI research workflow, persistent database, and isolated execution environment.
 
 ```mermaid
 flowchart TD
     U[Researcher] --> FE[React Frontend]
     FE --> API[FastAPI Backend]
-
-    API --> AUTH[Authentication & Authorization]
+    API --> AUTH[Authentication]
     API --> DB[(PostgreSQL)]
     API --> DS[Dataset Processing]
-    API --> RG[LangGraph Research Workflow]
-
+    API --> RG[LangGraph Workflow]
     RG --> VI[Vultr Serverless Inference]
     RG --> PLAN[Experiment Planning]
     PLAN --> APPROVAL[Human Approval]
-
     APPROVAL --> SB[Docker Sandbox]
-    SB --> TOOLS[Scientific Analysis Tools]
+    SB --> TOOLS[Scientific Analysis]
     TOOLS --> STATS[Statistical Evaluation]
-
-    STATS --> STORAGE[Artifact & Result Storage]
+    STATS --> STORAGE[Artifact Storage]
     STORAGE --> DB
     STORAGE --> API
-
     API --> FE
 ```
 
@@ -188,31 +127,28 @@ flowchart TD
 
 | Component | Responsibility |
 |---|---|
-| React frontend | Research workspace and user interface |
-| FastAPI backend | API layer and application services |
-| LangGraph | Structured research-agent workflow |
+| React | User interface |
+| TypeScript | Frontend development |
+| FastAPI | Backend services |
+| LangGraph | Research-agent workflow |
 | Vultr Serverless Inference | LLM inference |
-| PostgreSQL | Persistent application data |
-| Docker sandbox | Restricted analytical code execution |
-| Scientific analysis services | Dataset processing and statistical evaluation |
+| PostgreSQL | Persistent storage |
+| Docker | Isolated execution |
+| Scientific analysis services | Dataset and statistical analysis |
 
-## Research Workflow
+## 🔄 Research Workflow
 
-The research workflow is organized around these stages:
+1. **Dataset Inspection** – Parse and inspect scientific datasets.
+2. **Hypothesis Generation** – Identify potential research questions.
+3. **Experiment Planning** – Develop analytical plans.
+4. **Human Approval** – Review proposed experiments.
+5. **Sandbox Execution** – Execute approved analytical workloads.
+6. **Statistical Evaluation** – Assess analytical results.
+7. **Research Reporting** – Organize findings and supporting evidence.
 
-1. **Dataset Inspection** — Parse and inspect the uploaded dataset.
-2. **Hypothesis Generation** — Identify possible research questions.
-3. **Experiment Planning** — Develop an analytical execution plan.
-4. **Human Approval** — Review the proposed plan before execution.
-5. **Sandbox Execution** — Run approved analytical work in a restricted Docker environment.
-6. **Evaluation and Reporting** — Evaluate results and organize findings.
+## 💻 Technology Stack
 
-This separates AI-assisted reasoning from analytical execution and result evaluation.
-
-## Technology Stack
-
-### Frontend
-
+**Frontend**
 - React 18
 - TypeScript
 - Vite
@@ -221,8 +157,7 @@ This separates AI-assisted reasoning from analytical execution and result evalua
 - React Router
 - Lucide React
 
-### Backend
-
+**Backend**
 - Python
 - FastAPI
 - Pydantic
@@ -230,14 +165,12 @@ This separates AI-assisted reasoning from analytical execution and result evalua
 - Pytest
 - HTTPX
 
-### AI and Agent Workflow
-
+**AI and Agent Workflow**
 - LangGraph
 - Vultr Serverless Inference
 - DeepSeek model inference
 
-### Data and Infrastructure
-
+**Infrastructure and Database**
 - PostgreSQL 16
 - Docker
 - Docker Compose
@@ -246,279 +179,126 @@ This separates AI-assisted reasoning from analytical execution and result evalua
 - Nginx
 - Let's Encrypt SSL
 
----
+## 🛡️ Security Engineering
 
-## Security Engineering
+Security is an important aspect of NeuroForge AI because analytical workloads may involve AI-generated code.
 
-Security is a core design consideration because the platform executes analytical workloads generated through an AI-assisted workflow.
-
-### Sandbox Isolation
-
-The analytical execution environment applies defense-in-depth controls, including:
+The platform incorporates defense-in-depth measures, including:
 
 - Network isolation.
 - Read-only root filesystem.
-- Non-root execution.
-- Dropped Linux capabilities.
-- Disabled privilege escalation.
-- CPU, memory, and process limits.
+- Non-root container execution.
+- Restricted Linux capabilities.
+- CPU and memory limits.
+- Process restrictions.
 - Restricted temporary storage.
 - Dedicated workspaces.
+- Artifact validation.
 - Automatic container cleanup.
 
-### Artifact Handling
+**Security consideration:** Docker provides useful containment controls but does not guarantee complete isolation from host-level threats. Production deployments require additional infrastructure hardening, access controls, monitoring, and security review.
 
-Generated artifacts are subject to validation and resource limits.
+## 🌐 Live Deployment
 
-The application applies safeguards for artifact collection, including path and symlink handling, to reduce the risk of accessing files outside the permitted workspace.
+The application is deployed on Vultr cloud infrastructure.
 
-### Important Infrastructure Limitation
-
-The backend requires access to the Docker daemon to create and manage sandbox containers. Access to the Docker socket is highly privileged and can create host-level risk if the backend is compromised.
-
-Docker containers also share the host operating-system kernel.
-
-Therefore, NeuroForge AI uses layered containment controls, but does not claim that Docker provides an absolute security boundary or guarantees zero blast radius.
-
-Production deployments should additionally use strict access controls, host hardening, monitoring, regular patching, backups, and an appropriate threat model.
-
----
-
-## Deployment
-
-The live application is deployed on Vultr infrastructure.
-
-**Production URL:** https://neuroforgeai.duckdns.org/
-
-The production environment uses:
-
-- Ubuntu 24.04.
-- Docker-based application services.
-- PostgreSQL.
-- Nginx reverse proxy.
-- HTTPS with Let's Encrypt.
-- Vultr Serverless Inference integration.
-
-### Production Services
-
-The deployment separates the application into frontend, backend, and database services.
-
-| Service | Purpose |
+| Resource | Link |
 |---|---|
-| Frontend | Serves the React application |
-| Backend | Runs the FastAPI application |
-| Database | Stores persistent application data |
+| Live Application | https://neuroforgeai.duckdns.org/ |
+| API Documentation | https://neuroforgeai.duckdns.org/docs |
+| Health Check | https://neuroforgeai.duckdns.org/health |
 
-The database is not intended to be exposed directly to the public internet.
+Production infrastructure includes Ubuntu 24.04, Docker-based services, PostgreSQL, Nginx reverse proxy, HTTPS, and Vultr Serverless Inference integration.
 
-### Health Check
-
-The backend health endpoint is available at:
-
-https://neuroforgeai.duckdns.org/health
-
-### API Documentation
-
-Interactive API documentation:
-
-https://neuroforgeai.duckdns.org/docs
-
----
-
-## Repository Structure
-
-```text
-NeuroForge-AI/
-│
-├── artifacts/
-│
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── routers/
-│   │   ├── core/
-│   │   ├── db/
-│   │   ├── schemas/
-│   │   └── services/
-│   │       ├── dataset_parser.py
-│   │       ├── dataset_quality.py
-│   │       ├── research_graph.py
-│   │       ├── sandbox.py
-│   │       ├── scientific_tools.py
-│   │       ├── statistical_engine.py
-│   │       ├── storage.py
-│   │       └── vultr_inference.py
-│   │
-│   ├── tests/
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-├── data/
-│
-├── docker/
-│
-├── docs/
-│
-├── frontend/
-│   └── src/
-│       ├── components/
-│       ├── context/
-│       ├── pages/
-│       │   ├── app/
-│       │   └── public/
-│       ├── services/
-│       └── types/
-│
-├── infrastructure/
-│
-├── .env.example
-├── .gitignore
-├── AGENTS.md
-├── docker-compose.yml
-├── docker-compose.prod.yml
-└── README.md
-```
-
----
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-Install the following tools before starting:
-
-- Python 3.11 or a compatible version supported by the backend dependencies.
+- Python 3.11 or compatible version.
 - Node.js and npm.
-- Docker Engine or Docker Desktop.
 - Git.
-- PostgreSQL, if running the database outside Docker.
+- Docker Engine or Docker Desktop.
+- PostgreSQL, if running the database separately.
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/EshemWaseem/NeuroForge-AI.git
-cd NeuroForge-AI
+git clone https://github.com/BakhtawarTasawar/NeuroForge-AI-Vultr-Agent-Rush.git
+cd NeuroForge-AI-Vultr-Agent-Rush
 ```
 
 ### 2. Configure Environment Variables
-
-Use the example environment file as a starting point:
 
 ```bash
 cp .env.example .env
 ```
 
-Configure the required application, database, authentication, inference, and sandbox settings.
+Configure the required database, authentication, inference, and sandbox settings.
 
-Never commit actual API keys, passwords, signing secrets, or production environment files.
+Never commit API keys, passwords, or production credentials.
 
 ### 3. Start the Application
 
-Review the Docker Compose configuration and required environment variables before starting the services.
-
-For the local development configuration:
+Review the Docker Compose configuration and environment variables, then run:
 
 ```bash
 docker compose up --build
 ```
 
-Check the Compose service configuration and application logs if a service does not start.
-
 ### 4. Access the Application
 
-The frontend and backend addresses depend on the ports configured in your local environment.
+Use the local frontend and backend addresses specified in your configuration.
 
-For production, use:
+For the deployed application, visit:
 
-- Application: https://neuroforgeai.duckdns.org/
-- API documentation: https://neuroforgeai.duckdns.org/docs
+https://neuroforgeai.duckdns.org/
 
----
-
-## Engineering Principles
-
-NeuroForge AI is built around several engineering principles:
-
-**1. Separation of concerns**
-
-The frontend, API, research workflow, statistical services, database, and execution environment have distinct responsibilities.
-
-**2. Controlled autonomy**
-
-AI can assist with research reasoning and experiment planning, while analytical execution is separated through an approval boundary.
-
-**3. Evidence-driven outputs**
-
-Research findings should be connected to analytical outputs rather than presented as unsupported AI conclusions.
-
-**4. Defense in depth**
-
-Sandbox restrictions use multiple controls instead of relying on a single security mechanism.
-
-**5. Reproducibility and reviewability**
-
-Structured experiment outputs and artifacts make it easier to inspect what happened during an analysis.
-
-**6. Practical deployment**
-
-The project is deployed on real cloud infrastructure rather than existing only as a local prototype.
-
----
-
-## Current Scope and Limitations
-
-NeuroForge AI is an evolving research platform.
-
-Current scope and limitations include:
+## 🧪 Current Scope and Limitations
 
 - Initial focus on cancer gene-expression and transcriptomic datasets.
-- Statistical outputs require appropriate research-design and assumption checks.
-- AI-generated hypotheses require expert scientific review.
-- Sandbox isolation reduces risk but is not equivalent to a separate virtual machine or dedicated execution host.
-- LLM output quality depends on the selected model, prompt, dataset context, and inference availability.
-- The platform is not validated for clinical or diagnostic use.
+- AI-generated hypotheses require scientific review.
+- Statistical results depend on appropriate research design and assumptions.
+- LLM output quality depends on the selected model and available context.
+- Docker sandboxing reduces execution risks but does not guarantee absolute security.
+- The platform is intended for research and educational purposes, not clinical diagnosis.
 
----
+## 👥 Team & Acknowledgements
 
-## Team
+NeuroForge AI originated as a collaborative hackathon project.
 
-### Muhammad Eshem Waseem
+**Muhammad Eshem Waseem**  
+AI Engineer & Full Stack Developer  
+GitHub: [@EshemWaseem](https://github.com/EshemWaseem)  
+LinkedIn: [Muhammad Eshem Waseem](https://www.linkedin.com/in/muhammad-eshem-waseem/)
 
-**AI Engineer and Full Stack Developer**
+**Bakhtawar Tasawar**  
+Bioinformatics Research Contributor  
+GitHub: [@BakhtawarTasawar](https://github.com/BakhtawarTasawar)  
+LinkedIn: [Bakhtawar Tasawar](https://www.linkedin.com/in/bakhtawartasawar/)
 
-Interests: Artificial Intelligence, Machine Learning, Generative AI, Agentic AI, LLM Applications, RAG, Python, and Backend Engineering.
-
-- GitHub: https://github.com/EshemWaseem
-- LinkedIn: https://www.linkedin.com/in/muhammad-eshem-waseem/
-
-### Bakhtawar Tasawar
-
-**Bioinformatics**
-
-- LinkedIn: https://www.linkedin.com/in/bakhtawartasawar/
-
----
-
-## Hackathon
+## 🏆 Hackathon
 
 **Vultr Agent Rush — Challenge 1: Blast Radius Zero**
 
-NeuroForge AI explores how autonomous AI research workflows can be combined with controlled execution environments, statistical evaluation, and practical cloud deployment.
+NeuroForge AI explores the integration of autonomous AI agents with controlled analytical execution environments and practical cloud infrastructure.
 
-The project emphasizes a key engineering challenge: enabling useful AI-driven experimentation while limiting the operational risks associated with executing generated analytical code.
+The project addresses an important engineering challenge: enabling AI-assisted scientific experimentation while limiting the risks associated with executing generated code.
 
----
+## 📌 Future Development
 
-## Disclaimer
+Potential directions for further development include:
 
-NeuroForge AI is intended for research and educational purposes.
+- Expanded support for biological and scientific datasets.
+- Improved bioinformatics analysis workflows.
+- Enhanced research reproducibility.
+- More comprehensive statistical evaluation.
+- Improved experiment tracking and reporting.
+- Further development of secure analytical execution.
 
-It does not provide medical advice, diagnosis, treatment recommendations, or clinically validated conclusions. All scientific findings and statistical interpretations should be reviewed by qualified researchers.
+## ⚠️ Disclaimer
 
----
+NeuroForge AI is intended for scientific research and educational purposes. It does not provide medical advice, diagnosis, or treatment recommendations. Its outputs require independent scientific validation and expert review.
 
-## License
+## 📄 License
 
-No open-source license has currently been granted unless a separate license file is included in this repository.
-
-All rights remain with the respective copyright holders. Do not assume permission to reuse, distribute, or modify this project without authorization.
+No open-source license is currently granted unless a separate license file is included. All rights remain with their respective copyright holders. Consult the original project contributors regarding reuse and redistribution permissions.
